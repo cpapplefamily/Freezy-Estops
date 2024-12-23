@@ -12,6 +12,7 @@
 #ifndef STARTMATCH_H
 #define STARTMATCH_H
 
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
@@ -19,7 +20,7 @@
 extern const char* baseUrl;
 
 void startMatchPost() {
-    if (eth_connected) {
+    if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
 
         // Define payload

@@ -10,7 +10,9 @@
                      /_/                                            
 */
 #include <Arduino.h>
-#include <ETH.h>
+#include <WiFi.h>
+#include "WiFiCredentials.h"  // Include the WiFi credentials
+#include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
 #include "StartMatch.h"               // Include the StartMatch header
@@ -30,8 +32,8 @@
 #define ETH_PHY_SPI_MOSI 11
 #endif
 
-//const char* baseUrl = "http://192.168.10.106:8080";
-const char* baseUrl = "http://10.0.100.5:8080";
+const char* baseUrl = "http://192.168.10.106:8080";
+//const char* baseUrl = "http://10.0.100.5:8080";
 
 // Pins connected to the stop button
 #define NUM_BUTTONS 7
@@ -41,39 +43,6 @@ volatile bool stopButtonPressed[NUM_BUTTONS] = {false, false, false, false, fals
 #define START_MATCH_BTN 33
 #define LEDSTRIP 21           // Pin connected to NeoPixel
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, LEDSTRIP, NEO_GRB + NEO_KHZ800);
-
-static bool eth_connected = false;
-
-void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
-  switch (event) {
-    case ARDUINO_EVENT_ETH_START:
-      Serial.println("ETH Started");
-      //set eth hostname here
-      ETH.setHostname("Freezy_ScoreTable");
-      break;
-    case ARDUINO_EVENT_ETH_CONNECTED: 
-      Serial.println("ETH Connected"); 
-      break;
-    case ARDUINO_EVENT_ETH_GOT_IP:    
-      Serial.printf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif)); 
-      Serial.println(ETH);
-      eth_connected = true;
-      break;
-    case ARDUINO_EVENT_ETH_LOST_IP:
-      Serial.println("ETH Lost IP");
-      eth_connected = false;
-      break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-      Serial.println("ETH Disconnected");
-      eth_connected = false;
-      break;
-    case ARDUINO_EVENT_ETH_STOP:
-      Serial.println("ETH Stopped");
-      eth_connected = false;
-      break;
-    default: break;
-  }
-}
 
 // Interrupt handlers for the stop buttons
 void IRAM_ATTR handleStopButtonPress0() { stopButtonPressed[0] = true; }
@@ -110,8 +79,17 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(stopButtonPins[5]), handleStopButtonPress5, FALLING);
   attachInterrupt(digitalPinToInterrupt(stopButtonPins[6]), handleStopButtonPress6, FALLING);
 
-  Network.onEvent(onEvent);
-  ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+    // Connect to WiFi
+    // Rename WiFiCredentials.h.example to WiFiCredentials.h and update the ssid and password
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\nWiFi connected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
 }
 
 // Main loop

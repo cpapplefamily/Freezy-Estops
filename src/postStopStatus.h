@@ -12,6 +12,7 @@
 #ifndef POSTSTOPSTATUS_H
 #define POSTSTOPSTATUS_H
 
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
@@ -26,7 +27,7 @@ extern const char* baseUrl;
  */
 void postStopStatus(int i, bool stopButtonPressed) {
     // Send the HTTP POST request
-    if (eth_connected) {
+    if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
 
         // Define payload

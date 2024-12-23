@@ -13,13 +13,14 @@
 #ifndef ALLIANCESTATUS_H
 #define ALLIANCESTATUS_H
 
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
 extern const char* baseUrl;
 
 void getAllianceStatus() {
-    if (eth_connected) {
+    if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
         String url = String(baseUrl) + "/api/allianceStatus";
         http.begin(url);
