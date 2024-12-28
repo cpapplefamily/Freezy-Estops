@@ -9,6 +9,9 @@ String allianceColor;
 // Declare the arenaIP variable
 String arenaIP;
 
+// Declare the arenaPort variable
+String arenaPort;
+
 // Declare the useDHCP variable
 bool useDHCP;
 
