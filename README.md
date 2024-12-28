@@ -6,6 +6,29 @@ Freezy Estops is an application designed to manage emergency stop systems effici
 ## Features
 
 -- Work In Prgress
+- **Web-Based Configuration**: Easily configure the device settings through a web interface.
+  - **Alliance Color Selection**: Choose between Red, Blue, and Field alliance colors.
+  - **Network Configuration**: Set up the device IP, arena IP, and port.
+  - **DHCP Support**: Currently only DHCP
+
+- **Real-Time Status Updates**: Monitor and update the status of the device in real-time.
+  - **LED Indicators**: Visual feedback of filed status through LED indicators for different statuses.
+  - **Stop Button Monitoring**: Monitor multiple stop buttons and update their status.
+
+- **Ethernet Connectivity**: Reliable network connection using Ethernet.
+
+- **SPIFFS File System**: Store and serve static files such as images from the ESP32's file system.
+  - **Image Serving**: Serve images for the web interface directly from the ESP32.
+
+- **REST API Integration**: Communicate with the arena system using REST API.
+  - **Start Match**: Send a request to start the match.
+  - **Stop Status Update**: Update the stop status through API calls.
+
+- **User-Friendly Interface**: Intuitive and easy-to-use web interface for configuration and monitoring.
+
+- **Preferences Storage**: Save and retrieve configuration settings using non-volatile storage.
+  - **Persistent Settings**: Ensure settings are retained across device reboots.
+
 
 ## Contributing
 
