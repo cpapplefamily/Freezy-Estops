@@ -3,7 +3,16 @@
 
 #include <Arduino.h>
 
-// Declare the allianceColor variable as extern
+// Declare the allianceColor variable
 String allianceColor;
+
+// Declare the arenaIP variable
+String arenaIP;
+
+// Declare the useDHCP variable
+bool useDHCP;
+
+// Declare the deviceIP variable
+String deviceIP;
 
 #endif // GLOBALSETTINGS_H

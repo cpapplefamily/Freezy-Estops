@@ -40,8 +40,8 @@ const char* baseUrl = "http://192.168.10.124:8080";
 //const char* baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
-String ipAddress;
-bool useDHCP;
+extern String deviceIP;
+extern bool useDHCP;
 
 // Pins connected to the stop button
 #define NUM_BUTTONS 7
@@ -126,7 +126,7 @@ void setup() {
     preferences.begin("settings", false);
 
     // Load IP address and DHCP/Static configuration from preferences
-    ipAddress = preferences.getString("ipAddress", "");
+    deviceIP = preferences.getString("deviceIP", "");
     useDHCP = preferences.getBool("useDHCP", true);
     g_allianceColor = preferences.getString("allianceColor", "Red");
 
@@ -135,7 +135,7 @@ void setup() {
         ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
     } else {
         IPAddress localIP;
-        if (localIP.fromString(ipAddress)) {
+        if (localIP.fromString(deviceIP)) {
           Serial.println("Setting static IP address.");
           // THis is not working Need to fix
             ETH.config(localIP);
@@ -191,8 +191,8 @@ void loop() {
     // print the IP address every 5 seconds
     if (currentMillis - lastPrint >= 5000) {
         lastPrint = currentMillis;
-        ipAddress = preferences.getString("ipAddress", "");
-        Serial.printf("Preferences IP Address: %s\n", ipAddress.c_str());
+        deviceIP = preferences.getString("deviceIP", "");
+        Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
         useDHCP = preferences.getBool("useDHCP", true);
         Serial.printf("Use DHCP: %s\n", useDHCP ? "true" : "false");
         Serial.printf("Current IP Address: %s\n", ETH.localIP().toString().c_str());
