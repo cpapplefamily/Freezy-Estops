@@ -47,8 +47,10 @@ void setLEDColor(int ledIndex1, int length, bool status, uint32_t color) {
 
 const uint32_t RED_COLOR = strip.Color(255, 0, 0);
 const uint32_t BLUE_COLOR = strip.Color(0, 0, 255);
-const uint32_t ORANGE_COLOR = strip.Color(100, 100, 0);
+const uint32_t ORANGE_COLOR = strip.Color(150, 100, 0);
 const uint32_t GREEN_COLOR = strip.Color(0, 255, 0);
+const uint32_t WHITE_COLOR = strip.Color(20, 20, 20);
+bool heartbeat = false;
 
 void getField_stack_lightStatus() {
     if (eth_connected) {
@@ -78,23 +80,36 @@ void getField_stack_lightStatus() {
             bool orangeStackLightStatus = doc.containsKey("orangeStackLight") ? doc["orangeStackLight"].as<bool>() : false;
             bool greenStackLightStatus = doc.containsKey("greenStackLight") ? doc["greenStackLight"].as<bool>() : false;
             if (allianceColor == "Field") {
-                setLEDColor(0, 2, redStackLightStatus, RED_COLOR); // Red
-                setLEDColor(2, 2, blueStackLightStatus, BLUE_COLOR); // Blue
-                setLEDColor(4, 2, orangeStackLightStatus, ORANGE_COLOR); // Orange
-                setLEDColor(6, 2, greenStackLightStatus, GREEN_COLOR); // Green
-            } else {
-                setLEDColor(0, 10, false, GREEN_COLOR); // all off
+                setLEDColor(1, 2, redStackLightStatus, RED_COLOR); // Red
+                setLEDColor(3, 2, blueStackLightStatus, BLUE_COLOR); // Blue
+                setLEDColor(5, 2, orangeStackLightStatus, ORANGE_COLOR); // Orange
+                setLEDColor(7, 2, greenStackLightStatus, GREEN_COLOR); // Green
+            } else if (allianceColor == "Red") {
+                setLEDColor(1, 1, true, RED_COLOR); // RED
+            } else if (allianceColor == "Blue") {
+                setLEDColor(1, 1, true, BLUE_COLOR); // BLUE
+            } else{
+                setLEDColor(1, 1, true, ORANGE_COLOR); // ORANGE
             }
-            strip.show();
+            
 
             // Print the JSON data
             //serializeJsonPretty(doc, Serial);
+            heartbeat = !heartbeat; // Toggle heartbeat
+            setLEDColor(0, 1, heartbeat, WHITE_COLOR); // Orange
+            strip.show();
         } else {
             Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
+            heartbeat = !heartbeat; // Toggle heartbeat
+            setLEDColor(0, 1, heartbeat, ORANGE_COLOR); // Orange
+            strip.show();
         }
         http.end();
     } else {
         Serial.println("Network not connected!");
+        heartbeat = !heartbeat; // Toggle heartbeat
+        setLEDColor(0, 1, heartbeat, RED_COLOR); // Orange
+        strip.show();
     }
 }
 

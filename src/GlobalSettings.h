@@ -18,4 +18,5 @@ bool useDHCP;
 // Declare the deviceIP variable
 String deviceIP;
 
+
 #endif // GLOBALSETTINGS_H
