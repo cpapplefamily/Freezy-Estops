@@ -189,6 +189,8 @@ void loop() {
         useDHCP = preferences.getBool("useDHCP", true);
         Serial.printf("Use DHCP: %s\n", useDHCP ? "true" : "false");
         Serial.printf("Current IP Address: %s\n", ETH.localIP().toString().c_str());
+        String allianceColor = preferences.getString("allianceColor", "Red");
+        Serial.printf("Alliance Color: %s\n", allianceColor.c_str());
         
     }
         strip.show();
