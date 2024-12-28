@@ -17,6 +17,7 @@
 #include "postStopStatus.h"           // Include the postStopStatus header
 #include "AllianceStatus.h"           // Include the AllianceStatus header
 #include "Field_stack_lightStatus.h"  // Include the Field_stack_lightStatus header
+#include "WebServerSetup.h"           // Include the WebServerSetup header
 
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE     ETH_PHY_W5500
@@ -32,6 +33,9 @@
 
 const char* baseUrl = "http://192.168.10.124:8080";
 //const char* baseUrl = "http://10.0.100.5:8080";
+
+String ipAddress;
+bool useDHCP;
 
 // Pins connected to the stop button
 #define NUM_BUTTONS 7
@@ -87,7 +91,7 @@ void IRAM_ATTR handleStopButtonPress6() { stopButtonPressed[6] = true; }
 // Setup function
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  delay(5000);
 
   // Initialize the NeoPixel strip
   strip.begin();
@@ -111,12 +115,49 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(stopButtonPins[6]), handleStopButtonPress6, FALLING);
 
   Network.onEvent(onEvent);
-  ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+  
+   // Initialize preferences
+    preferences.begin("settings", false);
+
+    // Load IP address and DHCP/Static configuration from preferences
+    ipAddress = preferences.getString("ipAddress", "");
+    useDHCP = preferences.getBool("useDHCP", true);
+
+    // Initialize Ethernet with DHCP or Static IP
+    if (useDHCP) {
+        ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+    } else {
+        IPAddress localIP;
+        if (localIP.fromString(ipAddress)) {
+          Serial.println("Setting static IP address.");
+          // THis is not working Need to fix
+            ETH.config(localIP);
+            ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+        } else {
+            Serial.println("Invalid static IP address. Falling back to DHCP.");
+            ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+        }
+    }
+
+    // Wait for Ethernet to connect
+    while (!eth_connected) {
+        delay(100);
+    }
+
+    // Print the IP address
+    Serial.print("init - IP Address: ");
+    Serial.println(ETH.localIP());
+
+
+  // Set up the web server
+  setupWebServer();
+
 }
 
 // Main loop
 void loop() {
   static unsigned long lastStatusCheck = 0;
+  static unsigned long lastPrint = 0;
     unsigned long currentMillis = millis();
 
     // Check if the start match button is pressed
@@ -138,7 +179,17 @@ void loop() {
     if (currentMillis - lastStatusCheck >= 500) {
         //getAllianceStatus();
         getField_stack_lightStatus();
-        lastStatusCheck = currentMillis;
+        lastStatusCheck = currentMillis;  
+    }
+    // print the IP address every 5 seconds
+    if (currentMillis - lastPrint >= 5000) {
+        lastPrint = currentMillis;
+        ipAddress = preferences.getString("ipAddress", "");
+        Serial.printf("Preferences IP Address: %s\n", ipAddress.c_str());
+        useDHCP = preferences.getBool("useDHCP", true);
+        Serial.printf("Use DHCP: %s\n", useDHCP ? "true" : "false");
+        Serial.printf("Current IP Address: %s\n", ETH.localIP().toString().c_str());
+        
     }
         strip.show();
 }
