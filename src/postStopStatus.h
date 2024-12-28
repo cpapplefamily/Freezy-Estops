@@ -17,6 +17,7 @@
 
 
 extern const char* baseUrl;
+extern bool eth_connected;
 
 /**
  * Sends an HTTP POST request to update the stop status.

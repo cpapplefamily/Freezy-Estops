@@ -19,6 +19,7 @@
 extern Adafruit_NeoPixel strip;
 
 extern const char* baseUrl;
+extern bool eth_connected;
 
 /**
  * @brief Sets the color of two LEDs based on the status.

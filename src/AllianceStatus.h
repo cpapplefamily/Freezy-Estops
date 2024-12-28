@@ -17,6 +17,7 @@
 #include <ArduinoJson.h>
 
 extern const char* baseUrl;
+extern bool eth_connected;
 
 void getAllianceStatus() {
     if (eth_connected) {

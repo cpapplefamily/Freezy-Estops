@@ -42,7 +42,7 @@ volatile bool stopButtonPressed[NUM_BUTTONS] = {false, false, false, false, fals
 #define LEDSTRIP 21           // Pin connected to NeoPixel
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, LEDSTRIP, NEO_GRB + NEO_KHZ800);
 
-static bool eth_connected = false;
+bool eth_connected = false;
 
 void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
   switch (event) {

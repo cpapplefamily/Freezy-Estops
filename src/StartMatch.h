@@ -17,6 +17,7 @@
 
 
 extern const char* baseUrl;
+extern bool eth_connected;
 
 void startMatchPost() {
     if (eth_connected) {
