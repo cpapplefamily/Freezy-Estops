@@ -16,13 +16,12 @@
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
 #include "GlobalSettings.h"
-#include <Preferences.h>
 
 extern Adafruit_NeoPixel strip;
 
 extern const char* baseUrl;
 extern bool eth_connected;
-extern Preferences preferences;
+extern String allianceColor;
 
 /**
  * @brief Sets the color of two LEDs based on the status.
@@ -50,7 +49,6 @@ const uint32_t ORANGE_COLOR = strip.Color(100, 100, 0);
 const uint32_t GREEN_COLOR = strip.Color(0, 255, 0);
 
 void getField_stack_lightStatus() {
-    String allianceColor = preferences.getString("allianceColor", "Red");
     if (eth_connected) {
         HTTPClient http;
         String url = String(baseUrl) + "/field_stack_light";

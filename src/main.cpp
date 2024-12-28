@@ -18,6 +18,7 @@
 #include "AllianceStatus.h"           // Include the AllianceStatus header
 #include "Field_stack_lightStatus.h"  // Include the Field_stack_lightStatus header
 #include "WebServerSetup.h"           // Include the WebServerSetup header
+#include "GlobalSettings.h"           // Include the GlobalSettings header
 
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE     ETH_PHY_W5500
@@ -31,9 +32,14 @@
 #define ETH_PHY_SPI_MOSI 11
 #endif
 
+// Define preferences objects
+String g_allianceColor;
+
+// Define the base URL for the API
 const char* baseUrl = "http://192.168.10.124:8080";
 //const char* baseUrl = "http://10.0.100.5:8080";
 
+// Define the IP address and DHCP/Static configuration
 String ipAddress;
 bool useDHCP;
 
@@ -122,6 +128,7 @@ void setup() {
     // Load IP address and DHCP/Static configuration from preferences
     ipAddress = preferences.getString("ipAddress", "");
     useDHCP = preferences.getBool("useDHCP", true);
+    g_allianceColor = preferences.getString("allianceColor", "Red");
 
     // Initialize Ethernet with DHCP or Static IP
     if (useDHCP) {

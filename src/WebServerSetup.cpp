@@ -3,12 +3,14 @@
 // Define the web server and preferences objects
 AsyncWebServer server(80);
 Preferences preferences;
-String allianceColor;
+extern String allianceColor;
+extern String arenaIP;
 
 void setupWebServer() {
     // Load the alliance color from preferences
     preferences.begin("settings", false);
     allianceColor = preferences.getString("allianceColor", "Red");
+
 
     // Load IP address and DHCP/Static configuration from preferences
     String ipAddress = preferences.getString("ipAddress", "");
