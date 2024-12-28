@@ -30,8 +30,8 @@
 #define ETH_PHY_SPI_MOSI 11
 #endif
 
-//const char* baseUrl = "http://192.168.10.106:8080";
-const char* baseUrl = "http://10.0.100.5:8080";
+const char* baseUrl = "http://192.168.10.124:8080";
+//const char* baseUrl = "http://10.0.100.5:8080";
 
 // Pins connected to the stop button
 #define NUM_BUTTONS 7
