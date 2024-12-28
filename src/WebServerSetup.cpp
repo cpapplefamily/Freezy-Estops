@@ -59,7 +59,13 @@ void setupWebServer() {
         bool useDHCP = request->hasParam("dhcp", true);
         preferences.putBool("useDHCP", useDHCP);
 
-        request->send(200, "text/plain", "Configuration updated. Please restart the device.");
+           // Serve the configuration updated page with a button to return home
+        String html = "<html><body>"
+                      "<h1>Configuration Updated</h1>"
+                      "<p>The configuration has been updated. Please restart the device.</p>"
+                      "<button onclick=\"location.href='/'\">Return Home</button>"
+                      "</body></html>";
+        request->send(200, "text/html", html);
     });
 
     // Start the server

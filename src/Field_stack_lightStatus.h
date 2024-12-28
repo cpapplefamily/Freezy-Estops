@@ -15,11 +15,14 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
+#include "GlobalSettings.h"
+#include <Preferences.h>
 
 extern Adafruit_NeoPixel strip;
 
 extern const char* baseUrl;
 extern bool eth_connected;
+extern Preferences preferences;
 
 /**
  * @brief Sets the color of two LEDs based on the status.
@@ -29,13 +32,15 @@ extern bool eth_connected;
  * @param status The status indicating whether to turn on or off the LEDs.
  * @param color The color to set the LEDs to if the status is true.
  */
-void setLEDColor(int ledIndex1, int ledIndex2, bool status, uint32_t color) {
+void setLEDColor(int ledIndex1, int length, bool status, uint32_t color) {
     if (status) {
-        strip.setPixelColor(ledIndex1, color); // Set first LED to color
-        strip.setPixelColor(ledIndex2, color); // Set second LED to color
+        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+            strip.setPixelColor(i, color); // Set LED to color
+        }
     } else {
-        strip.setPixelColor(ledIndex1, strip.Color(0, 0, 0)); // Turn off first LED
-        strip.setPixelColor(ledIndex2, strip.Color(0, 0, 0)); // Turn off second LED
+        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+            strip.setPixelColor(i, strip.Color(0, 0, 0)); // Set LED to color
+        }
     }
 }
 
@@ -45,6 +50,7 @@ const uint32_t ORANGE_COLOR = strip.Color(100, 100, 0);
 const uint32_t GREEN_COLOR = strip.Color(0, 255, 0);
 
 void getField_stack_lightStatus() {
+    String allianceColor = preferences.getString("allianceColor", "Red");
     if (eth_connected) {
         HTTPClient http;
         String url = String(baseUrl) + "/field_stack_light";
@@ -71,10 +77,14 @@ void getField_stack_lightStatus() {
             bool blueStackLightStatus = doc.containsKey("blueStackLight") ? doc["blueStackLight"].as<bool>() : false;
             bool orangeStackLightStatus = doc.containsKey("orangeStackLight") ? doc["orangeStackLight"].as<bool>() : false;
             bool greenStackLightStatus = doc.containsKey("greenStackLight") ? doc["greenStackLight"].as<bool>() : false;
-            setLEDColor(0, 1, redStackLightStatus, RED_COLOR); // Red
-            setLEDColor(2, 3, blueStackLightStatus, BLUE_COLOR); // Blue
-            setLEDColor(4, 5, orangeStackLightStatus, ORANGE_COLOR); // Orange
-            setLEDColor(6, 7, greenStackLightStatus, GREEN_COLOR); // Green
+            if (allianceColor == "Field") {
+                setLEDColor(0, 2, redStackLightStatus, RED_COLOR); // Red
+                setLEDColor(2, 2, blueStackLightStatus, BLUE_COLOR); // Blue
+                setLEDColor(4, 2, orangeStackLightStatus, ORANGE_COLOR); // Orange
+                setLEDColor(6, 2, greenStackLightStatus, GREEN_COLOR); // Green
+            } else {
+                setLEDColor(0, 10, false, GREEN_COLOR); // all off
+            }
             strip.show();
 
             // Print the JSON data
