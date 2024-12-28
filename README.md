@@ -1,3 +1,4 @@
+![logo](images/Freezy%20Arena%20EStops%20logo.png)
 # Freezy Estops
 
 Freezy Estops is an application designed to manage emergency stop systems efficiently. This application ensures that all emergency stop mechanisms are monitored and controlled effectively to enhance safety and reliability.

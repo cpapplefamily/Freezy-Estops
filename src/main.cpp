@@ -15,7 +15,6 @@
 #include <Adafruit_NeoPixel.h>
 #include "StartMatch.h"               // Include the StartMatch header
 #include "postStopStatus.h"           // Include the postStopStatus header
-#include "AllianceStatus.h"           // Include the AllianceStatus header
 #include "Field_stack_lightStatus.h"  // Include the Field_stack_lightStatus header
 #include "WebServerSetup.h"           // Include the WebServerSetup header
 #include "GlobalSettings.h"           // Include the GlobalSettings header
@@ -184,7 +183,6 @@ void loop() {
     
     // Check alliance status every 500ms
     if (currentMillis - lastStatusCheck >= 500) {
-        //getAllianceStatus();
         getField_stack_lightStatus();
         lastStatusCheck = currentMillis;  
     }

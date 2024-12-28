@@ -22,6 +22,8 @@ extern Adafruit_NeoPixel strip;
 extern const char* baseUrl;
 extern bool eth_connected;
 extern String allianceColor;
+extern String arenaIP;
+extern String arenaPort;
 
 /**
  * @brief Sets the color of two LEDs based on the status.
@@ -51,7 +53,7 @@ const uint32_t GREEN_COLOR = strip.Color(0, 255, 0);
 void getField_stack_lightStatus() {
     if (eth_connected) {
         HTTPClient http;
-        String url = String(baseUrl) + "/field_stack_light";
+        String url = "http://" + arenaIP + ":" + arenaPort + "/field_stack_light";
         http.begin(url);
         int httpResponseCode = http.GET();
 

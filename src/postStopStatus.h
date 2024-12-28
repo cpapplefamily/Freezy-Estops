@@ -14,10 +14,11 @@
 
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-
+#include "GlobalSettings.h"
 
 extern const char* baseUrl;
 extern bool eth_connected;
+extern String allianceColor;
 
 /**
  * Sends an HTTP POST request to update the stop status.
@@ -35,8 +36,16 @@ void postStopStatus(int i, bool stopButtonPressed) {
         JsonArray array = payload.to<JsonArray>();
         
         JsonObject channel = array.createNestedObject();
-        channel["channel"] = i;
-        channel["state"] = stopButtonPressed;
+        if (allianceColor == "Field") {
+            channel["channel"] = i;
+            channel["state"] = stopButtonPressed;
+        } else if (allianceColor == "Red") {
+            channel["channel"] = i;
+            channel["state"] = stopButtonPressed;
+        } else if (allianceColor == "Blue") {
+            channel["channel"] = i + 6;
+            channel["state"] = stopButtonPressed;
+        }
 
         String jsonPayload;
         serializeJson(payload, jsonPayload);
