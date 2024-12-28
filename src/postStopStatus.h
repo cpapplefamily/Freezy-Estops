@@ -37,7 +37,7 @@ void postStopStatus(int i, bool stopButtonPressed) {
         
         JsonObject channel = array.createNestedObject();
         if (allianceColor == "Field") {
-            channel["channel"] = i;
+            channel["channel"] = 0; // Only Channel 0 is used for Field
             channel["state"] = stopButtonPressed;
         } else if (allianceColor == "Red") {
             channel["channel"] = i;
