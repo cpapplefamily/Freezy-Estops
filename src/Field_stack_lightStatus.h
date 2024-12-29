@@ -86,8 +86,10 @@ void getField_stack_lightStatus() {
                 setLEDColor(7, 2, greenStackLightStatus, GREEN_COLOR); // Green
             } else if (allianceColor == "Red") {
                 setLEDColor(1, 1, true, RED_COLOR); // RED
+                setLEDColor(2, 8, false, RED_COLOR); // RED
             } else if (allianceColor == "Blue") {
                 setLEDColor(1, 1, true, BLUE_COLOR); // BLUE
+                setLEDColor(2, 8, false, BLUE_COLOR); // RED
             } else{
                 setLEDColor(1, 1, true, ORANGE_COLOR); // ORANGE
             }
