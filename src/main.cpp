@@ -50,17 +50,33 @@ extern bool useDHCP;
 // Pins connected to the stop button
 #define NUM_BUTTONS 7
 
-#ifdef ESP32
-  const int stopButtonPins[NUM_BUTTONS] = {0, 32, 33, 34, 35, 36, 39}; 
-  #define START_MATCH_BTN 33
-  #define LEDSTRIP 4           // Pin connected to NeoPixel
-#endif // ESP32
-
-#ifdef esp32-s3-devkitm-1
-  const int stopButtonPins[NUM_BUTTONS] = {0, 1 , 2 , 3 , 4 , 5 , 6}; 
-  #define START_MATCH_BTN 33
+//C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
+#ifdef ESP32_S3_DEVKITM_1
+  const int stopButtonPins[NUM_BUTTONS] = {33,  //Field stop
+                                          34,   //1E stop
+                                          35,   //1A stop
+                                          36,   //2E stop
+                                          37,   //2A stop
+                                          38,   //3E stop
+                                          39};   //3a stop
+                                                      
+  #define START_MATCH_BTN 40
   #define LEDSTRIP 21           // Pin connected to NeoPixel
-#endif // esp32-s3-devkitm-1
+#endif // ESP32_S3_DEVKITM_1
+
+//C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32dev -t upload
+#ifdef ESP32DEV
+  const int stopButtonPins[NUM_BUTTONS] = {21,  //Field stop
+                                          22,   //1E stop
+                                          23,   //1A stop
+                                          25,   //2E stop
+                                          26,   //2A stop
+                                          27,   //3E stop
+                                          32};   //3a stop
+  #define START_MATCH_BTN 19
+  #define LEDSTRIP 4           // Pin connected to NeoPixel
+#endif // ESP32DEV
+
 #
 volatile bool stopButtonPressed[NUM_BUTTONS] = {false, false, false, false, false, false, false};
 
@@ -75,7 +91,7 @@ void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
       WiFi.setHostname("Freezy_Red");
       break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.printf("WiFi STA Got IP: '%s'\n", "test");//ip4addr_ntoa(info.got_ip.ip_info.ip));
+      Serial.printf("WiFi STA Got IP: '%s'\n", WiFi.localIP().toString().c_str());
       eth_connected = true;
       break;
     case ARDUINO_EVENT_ETH_START:
@@ -177,13 +193,13 @@ void setup() {
     g_allianceColor = preferences.getString("allianceColor", "Red");
 
 
-  #ifdef ESP32
+  #ifdef ESP32DEV
     
     // Connect to the WiFi network
     intiWifi();
   #endif // ESP32 
 
-  #ifdef esp32-s3-devkitm-1
+  #ifdef ESP32_S3_DEVKITM_1
     Network.onEvent(onEvent);
     // Initialize Ethernet with DHCP or Static IP
     if (useDHCP) {
@@ -248,15 +264,14 @@ void loop() {
         deviceIP = preferences.getString("deviceIP", "");
         Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
         useDHCP = preferences.getBool("useDHCP", true);
-        #ifdef esp32
-          Serial.printf("Current WiFi IP Address: %s\n", WiFi.localIP());
+        #ifdef ESP32DEV
+          Serial.printf("Current WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
         #endif
-        #ifdef esp32-s3-devkitm-1
+        #ifdef ESP32_S3_DEVKITM_1
           Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
         #endif
         
     }
         strip.show();
-        USE_SERIAL.println("Hello World");
         delay(1000);
 }
