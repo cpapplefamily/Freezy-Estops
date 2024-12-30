@@ -61,7 +61,10 @@ extern bool useDHCP;
                                           39};   //3a stop
                                                       
   #define START_MATCH_BTN 40
-  #define LEDSTRIP 21           // Pin connected to NeoPixel
+  #define LEDSTRIP 17           // Pin connected to NeoPixel
+  //#define ONBOARD_LED 26 //Board does not have
+  #define ONBOARD_RGB 21
+  Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(1, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
 #endif // ESP32_S3_DEVKITM_1
 
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32dev -t upload
@@ -75,6 +78,7 @@ extern bool useDHCP;
                                           32};   //3a stop
   #define START_MATCH_BTN 19
   #define LEDSTRIP 4           // Pin connected to NeoPixel
+  #define ONBOARD_LED 2
 #endif // ESP32DEV
 
 #
@@ -161,6 +165,7 @@ void setup() {
   Serial.begin(115200);
   delay(5000);
 
+
   // Initialize the NeoPixel strip
   strip.begin();
   strip.setBrightness(20);
@@ -192,11 +197,10 @@ void setup() {
     useDHCP = preferences.getBool("useDHCP", true);
     g_allianceColor = preferences.getString("allianceColor", "Red");
 
-
   #ifdef ESP32DEV
-    
     // Connect to the WiFi network
     intiWifi();
+    pinMode(ONBOARD_LED, OUTPUT);
   #endif // ESP32 
 
   #ifdef ESP32_S3_DEVKITM_1
@@ -224,6 +228,10 @@ void setup() {
     // Print the IP address
     Serial.print("init - IP Address: ");
     Serial.println(ETH.localIP());
+
+    onBoardRGB.begin();
+    onBoardRGB.setBrightness(50);
+    onBoardRGB.show();
   #endif // ESP32
 
 
@@ -266,9 +274,13 @@ void loop() {
         useDHCP = preferences.getBool("useDHCP", true);
         #ifdef ESP32DEV
           Serial.printf("Current WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
+          digitalWrite(ONBOARD_LED, !digitalRead(ONBOARD_LED));
         #endif
         #ifdef ESP32_S3_DEVKITM_1
           Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
+          uint32_t currentColor = onBoardRGB.getPixelColor(1);
+          onBoardRGB.setPixelColor(1, currentColor == onBoardRGB.Color(255, 0, 0) ? onBoardRGB.Color(0, 255, 0) : onBoardRGB.Color(255, 0, 0)); // Toggle between red and green
+          onBoardRGB.show();
         #endif
         
     }
