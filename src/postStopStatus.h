@@ -71,7 +71,7 @@ void postStopStatus(int i, bool stopButtonPressed) {
         // Close the connection
         http.end();
     } else {
-        Serial.println("Network not connected!");
+        Serial.println("Network not connected![PSS]");
     }
 }
 

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.ls": "fanuctp",
+        "*.funuctp": "funuctp",
+        "string": "cpp"
+    }
+}

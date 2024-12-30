@@ -50,7 +50,7 @@ void startMatchPost() {
         // Close the connection
         http.end();
     } else {
-        Serial.println("Network not connected!");
+        Serial.println("Network not connected![SM]");
     }
 }
 
