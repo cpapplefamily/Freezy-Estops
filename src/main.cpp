@@ -53,15 +53,15 @@ extern bool useDHCP;
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
 #ifdef ESP32_S3_DEVKITM_1
   const int stopButtonPins[NUM_BUTTONS] = {34,  //Field stop
-                                          40,   //1E stop
-                                          39,   //1A stop
-                                          38,   //2E stop
-                                          37,   //2A stop
-                                          36,   //3E stop
-                                          33};   //3a stop
+                                          46,   //1E stop
+                                          17,   //1A stop
+                                          16,   //2E stop
+                                          18,   //2A stop
+                                          15,   //3E stop
+                                          3};   //3A stop
                                                       
-  #define START_MATCH_BTN 35
-  #define LEDSTRIP 17           // Pin connected to NeoPixel
+  #define START_MATCH_BTN 33
+  #define LEDSTRIP 47             // Pin connected to NeoPixel
   //#define ONBOARD_LED 26 //Board does not have
   #define ONBOARD_RGB 21
   Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(1, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
@@ -80,9 +80,6 @@ extern bool useDHCP;
   #define LEDSTRIP 4           // Pin connected to NeoPixel
   #define ONBOARD_LED 2
 #endif // ESP32DEV
-
-#
-volatile bool stopButtonPressed[NUM_BUTTONS] = {false, false, false, false, false, false, false};
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, LEDSTRIP, NEO_GRB + NEO_KHZ800);
 
@@ -127,15 +124,6 @@ void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
   }
 }
 
-// Interrupt handlers for the stop buttons
-void IRAM_ATTR handleStopButtonPress0() { stopButtonPressed[0] = true; }
-void IRAM_ATTR handleStopButtonPress1() { stopButtonPressed[1] = true; }
-void IRAM_ATTR handleStopButtonPress2() { stopButtonPressed[2] = true; }
-void IRAM_ATTR handleStopButtonPress3() { stopButtonPressed[3] = true; }
-void IRAM_ATTR handleStopButtonPress4() { stopButtonPressed[4] = true; }
-void IRAM_ATTR handleStopButtonPress5() { stopButtonPressed[5] = true; }
-void IRAM_ATTR handleStopButtonPress6() { stopButtonPressed[6] = true; } 
-
 IPAddress local_ip(192,168,10,220);
 IPAddress gateway(192,168,10,1);
 IPAddress subnet(255,255,255,0);
@@ -177,17 +165,8 @@ void setup() {
 
    // Initialize the stop buttons
   for (int i = 0; i < NUM_BUTTONS; i++) {
-      pinMode(stopButtonPins[i], INPUT_PULLUP);
+      pinMode(stopButtonPins[i], INPUT);
   } 
-
-
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[0]), handleStopButtonPress0, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[1]), handleStopButtonPress1, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[2]), handleStopButtonPress2, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[3]), handleStopButtonPress3, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[4]), handleStopButtonPress4, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[5]), handleStopButtonPress5, FALLING);
-  attachInterrupt(digitalPinToInterrupt(stopButtonPins[6]), handleStopButtonPress6, FALLING);
   
    // Initialize preferences
     preferences.begin("settings", false);
@@ -252,15 +231,30 @@ void loop() {
         startMatchPost();
     }
 
-    // Check if the stop buttons are pressed
+    // Create an array to store the states of the stop buttons
+  bool stopButtonStates[NUM_BUTTONS];
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    stopButtonStates[i] = !digitalRead(stopButtonPins[i]);
+  }
+
+  // Call the postAllStopStatus method with the array
+  postAllStopStatus(stopButtonStates);
+
+
+/*     // Check if the stop buttons are pressed
     for (int i = 0; i < NUM_BUTTONS; i++) {
-        if (stopButtonPressed[i]) {
+        if (digitalRead(stopButtonPins[i]) == HIGH) {
+            stopButtonPressed[i] = true;
+            if (stopButtonPressed[i]) {
+                Serial.printf("Stop button %d pressed!\n", i);
+            }
+            postSingleStopStatus(i, false);
+        } else{
             stopButtonPressed[i] = false;
-            Serial.printf("Stop button %d pressed!\n", i);
-            postStopStatus(i, false);
-        } 
+            postSingleStopStatus(i, true);
+        }
     }
-    
+     */
     // Check alliance status every 500ms
     if (currentMillis - lastStatusCheck >= 500) {
         getField_stack_lightStatus();
@@ -285,5 +279,5 @@ void loop() {
         
     }
         strip.show();
-        delay(1000);
+        delay(500);
 }

@@ -39,6 +39,7 @@ void startMatchPost() {
 
         // Handle the response
         if (httpResponseCode > 0) {
+            Serial.println("StartMatch.h");
             Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
             String response = http.getString();
             Serial.println("Response:");
