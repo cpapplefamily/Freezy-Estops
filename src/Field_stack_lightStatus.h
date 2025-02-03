@@ -108,7 +108,7 @@ void getField_stack_lightStatus() {
         }
         http.end();
     } else {
-        Serial.println("Network not connected!");
+        Serial.println("Network not connected! [FSL]");
         heartbeat = !heartbeat; // Toggle heartbeat
         setLEDColor(0, 1, heartbeat, RED_COLOR); // Orange
         strip.show();
