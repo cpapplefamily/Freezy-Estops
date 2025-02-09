@@ -53,12 +53,12 @@ extern bool useDHCP;
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
 #ifdef ESP32_S3_DEVKITM_1
   const int stopButtonPins[NUM_BUTTONS] = {34,  //Field stop
-                                          46,   //1E stop
-                                          17,   //1A stop
-                                          16,   //2E stop
-                                          18,   //2A stop
-                                          15,   //3E stop
-                                          3};   //3A stop
+                                          1,   //1E stop
+                                          2,   //1A stop
+                                          3,   //2E stop
+                                          15,   //2A stop
+                                          18,   //3E stop
+                                          16};   //3A stop
                                                       
   #define START_MATCH_BTN 33
   #define LEDSTRIP 47             // Pin connected to NeoPixel
