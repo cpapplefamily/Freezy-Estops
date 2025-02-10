@@ -40,8 +40,8 @@
 String g_allianceColor;
 
 // Define the base URL for the API
-const char* baseUrl = "http://192.168.10.124:8080";
-//const char* baseUrl = "http://10.0.100.5:8080";
+//const char* baseUrl = "http://192.168.10.124:8080";
+const char* baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceIP;
@@ -52,7 +52,7 @@ extern bool useDHCP;
 
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
 #ifdef ESP32_S3_DEVKITM_1
-  const int stopButtonPins[NUM_BUTTONS] = {34,  //Field stop
+  const int stopButtonPins[NUM_BUTTONS] = {33,  //Field stop
                                           1,   //1E stop
                                           2,   //1A stop
                                           3,   //2E stop
@@ -60,11 +60,11 @@ extern bool useDHCP;
                                           18,   //3E stop
                                           16};   //3A stop
                                                       
-  #define START_MATCH_BTN 33
+  #define START_MATCH_BTN 34
   #define LEDSTRIP 47             // Pin connected to NeoPixel
   //#define ONBOARD_LED 26 //Board does not have
   #define ONBOARD_RGB 21
-  Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(1, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
+  Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(10, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
 #endif // ESP32_S3_DEVKITM_1
 
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32dev -t upload
@@ -81,7 +81,8 @@ extern bool useDHCP;
   #define ONBOARD_LED 2
 #endif // ESP32DEV
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, LEDSTRIP, NEO_GRB + NEO_KHZ800);
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, LEDSTRIP, NEO_GRB + NEO_KHZ800);
 
 bool eth_connected = false;
 
