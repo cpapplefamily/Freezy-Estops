@@ -45,6 +45,7 @@ void startMatchPost() {
             Serial.println("Response:");
             Serial.println(response);
         } else {
+            Serial.println("StartMatch.h");
             Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
         }
 

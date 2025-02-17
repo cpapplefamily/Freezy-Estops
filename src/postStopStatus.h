@@ -55,23 +55,25 @@ void postSingleStopStatus(int i, bool stopButtonPressed) {
 
         // Configure HTTP POST request
         String url = String(baseUrl) + "/freezy/eStopState";
+        Serial.println("URL: " + url); // Print the URL
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
-
+        
         // Send the request
         int httpResponseCode = http.POST(jsonPayload);
-
+        
         // Handle the response
         if (httpResponseCode > 0) {
-            Serial.println("PostStopStatus.h");
+            Serial.println("ostSingleStopStatus");
             Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
             String response = http.getString();
             Serial.println("Response:");
             Serial.println(response);
         } else {
+            Serial.println("SingleStopStatus");
             Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
         }
-
+        
         // Close the connection
         http.end();
     } else {
@@ -88,18 +90,18 @@ void postAllStopStatus(bool stopButtonStates[7]) {
     // Send the HTTP POST request
     if (eth_connected) {
         HTTPClient http;
-
+        
         // Define payload
         StaticJsonDocument<200> payload;
         JsonArray array = payload.to<JsonArray>();
-
+        
         int offset = 0;
         if (allianceColor == "Red") {
-           offset = 0;
+            offset = 0;
         } else if (allianceColor == "Blue") {
-           offset = 6;
+            offset = 6;
         }
-
+        
         JsonObject channel = array.createNestedObject();
         channel["channel"] = 0 ;
         channel["state"] = stopButtonStates[0];
@@ -108,27 +110,29 @@ void postAllStopStatus(bool stopButtonStates[7]) {
             channel["channel"] = i + offset ;
             channel["state"] = stopButtonStates[i];
         }
-
+        
         // Convert payload to JSON string
         String jsonString;
         serializeJson(payload, jsonString);
-
-         // Configure HTTP POST request
+        
+        // Configure HTTP POST request
         String url = String(baseUrl) + "/freezy/eStopState";
+        Serial.println("URL: " + url); // Print the URL
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
-
+        
         // Send the request
         int httpResponseCode = http.POST(jsonString);
-
+        
         // Handle the response
         if (httpResponseCode > 0) {
-            Serial.println("PostStopStatus.h");
+            Serial.println("postAllStopStatus");
             Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
             String response = http.getString();
             Serial.println("Response:");
             Serial.println(response);
         } else {
+            Serial.println("postAllStopStatus");
             Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
         }
 

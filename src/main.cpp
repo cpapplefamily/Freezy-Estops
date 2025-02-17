@@ -14,7 +14,8 @@
 #include <WiFi.h>
 #include "WiFiCredentials.h"  // Include the WiFi credentials
 #include <ArduinoJson.h>
-#include <Adafruit_NeoPixel.h>
+#define FASTLED_INTERNAL        // Suppress build banner
+#include <FastLED.h>
 #include "StartMatch.h"               // Include the StartMatch header
 #include "postStopStatus.h"           // Include the postStopStatus header
 #include "Field_stack_lightStatus.h"  // Include the Field_stack_lightStatus header
@@ -40,8 +41,8 @@
 String g_allianceColor;
 
 // Define the base URL for the API
-const char* baseUrl = "http://192.168.10.124:8080";
-//const char* baseUrl = "http://10.0.100.5:8080";
+//const char* baseUrl = "http://192.168.10.124:8080";
+const char* baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceIP;
@@ -52,19 +53,25 @@ extern bool useDHCP;
 
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
 #ifdef ESP32_S3_DEVKITM_1
-  const int stopButtonPins[NUM_BUTTONS] = {34,  //Field stop
-                                          46,   //1E stop
-                                          17,   //1A stop
-                                          16,   //2E stop
-                                          18,   //2A stop
-                                          15,   //3E stop
-                                          3};   //3A stop
+  const int stopButtonPins[NUM_BUTTONS] = {33,  //Field stop
+                                          1,   //1E stop
+                                          2,   //1A stop
+                                          3,   //2E stop
+                                          15,   //2A stop
+                                          18,   //3E stop
+                                          16};   //3A stop
                                                       
-  #define START_MATCH_BTN 33
+  #define START_MATCH_BTN 34
   #define LEDSTRIP 47             // Pin connected to NeoPixel
+  #define NUM_LEDS 239            // Number of LEDs in the strip
+  int g_Brightness = 5;//15;         // 0-255 LED brightness scale
+  int g_PowerLimit = 50000;//900;        // 900mW Power Limit
+  CRGB g_LEDs[NUM_LEDS] = {0};    // Frame buffer for FastLED
+
   //#define ONBOARD_LED 26 //Board does not have
   #define ONBOARD_RGB 21
-  Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(1, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
+
+  //Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(10, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
 #endif // ESP32_S3_DEVKITM_1
 
 //C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32dev -t upload
@@ -81,7 +88,8 @@ extern bool useDHCP;
   #define ONBOARD_LED 2
 #endif // ESP32DEV
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, LEDSTRIP, NEO_GRB + NEO_KHZ800);
+
+//Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, LEDSTRIP, NEO_GRB + NEO_KHZ800);
 
 bool eth_connected = false;
 
@@ -153,11 +161,12 @@ void setup() {
   Serial.begin(115200);
   delay(5000);
 
+  // Initialize the LED strip
+  FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS);               // Add our LED strip to the FastLED library
+	FastLED.setBrightness(g_Brightness);
+  //set_max_power_indicator_LED(LED_BUILTIN);                               // Light the builtin LED if we power throttle
+  FastLED.setMaxPowerInMilliWatts(g_PowerLimit);                          // Set the power limit, above which brightness will be throttled
 
-  // Initialize the NeoPixel strip
-  strip.begin();
-  strip.setBrightness(20);
-  strip.show(); // Initialize all pixels to 'off'
 
   // Initialize the start match button
   pinMode(START_MATCH_BTN, INPUT_PULLUP);
@@ -208,9 +217,7 @@ void setup() {
     Serial.print("init - IP Address: ");
     Serial.println(ETH.localIP());
 
-    onBoardRGB.begin();
-    onBoardRGB.setBrightness(50);
-    onBoardRGB.show();
+
   #endif // ESP32
 
 
@@ -224,6 +231,7 @@ void loop() {
   static unsigned long lastStatusCheck = 0;
   static unsigned long lastPrint = 0;
     unsigned long currentMillis = millis();
+    FastLED.clear(); // Clear the LED strip
 
     // Check if the start match button is pressed
     if (digitalRead(START_MATCH_BTN) == LOW) {
@@ -272,12 +280,28 @@ void loop() {
         #endif
         #ifdef ESP32_S3_DEVKITM_1
           Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
-          uint32_t currentColor = onBoardRGB.getPixelColor(1);
-          onBoardRGB.setPixelColor(1, currentColor == onBoardRGB.Color(255, 0, 0) ? onBoardRGB.Color(0, 255, 0) : onBoardRGB.Color(255, 0, 0)); // Toggle between red and green
-          onBoardRGB.show();
+          
         #endif
         
     }
-        strip.show();
-        delay(500);
+    
+    int heartbeat_LED = 0;
+    // Use a case statement to set the g_LEDs color based on the heartbeat variable
+    switch (heartbeatState) {
+        case 0:
+            g_LEDs[heartbeat_LED] = CRGB::Black;
+            break;
+        case 1:
+            g_LEDs[heartbeat_LED] = CRGB::White; 
+            break;
+        case 2:
+            g_LEDs[heartbeat_LED] = CRGB::Orange;
+            break;
+        default:
+            g_LEDs[heartbeat_LED] = CRGB::Red;
+            break;
+    }
+    
+    FastLED.show(g_Brightness); //  Show and delay
+    delay(500);
 }
