@@ -41,8 +41,8 @@
 String g_allianceColor;
 
 // Define the base URL for the API
-//const char* baseUrl = "http://192.168.10.124:8080";
-const char* baseUrl = "http://10.0.100.5:8080";
+const char* baseUrl = "http://192.168.10.124:8080";
+//const char* baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceIP;
