@@ -11,16 +11,10 @@
 */
 #include <Arduino.h>
 #include <ETH.h>
-#include <WiFi.h>
-#include "WiFiCredentials.h"  // Include the WiFi credentials
 #include <ArduinoJson.h>
 #define FASTLED_INTERNAL        // Suppress build banner
 #include <FastLED.h>
-#include "StartMatch.h"               // Include the StartMatch header
-#include "postStopStatus.h"           // Include the postStopStatus header
-#include "Field_stack_lightStatus.h"  // Include the Field_stack_lightStatus header
-#include "WebServerSetup.h"           // Include the WebServerSetup header
-#include "GlobalSettings.h"           // Include the GlobalSettings header
+#include <WebSocketsClient.h>
 
 
 #ifndef ETH_PHY_CS
@@ -37,271 +31,354 @@
 
 #define USE_SERIAL Serial
 
-// Define preferences objects
-String g_allianceColor;
+// Define the LED strip
+#define LED_PIN        	47
+#define NUM_LED_SRIPS  2
+#define NUM_LEDS_SRIPS_L  5
+#define NUM_LEDS_PER_M      30   
+#define NUM_LEDS       	(NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
+#define SECTION_LENGTH  49
+#define BLUE1_LED       0
+#define BLUE1_LED_LENGTH    SECTION_LENGTH
+#define BLUE2_LED           SECTION_LENGTH
+#define BLUE2_LED_LENGTH    SECTION_LENGTH
+#define BLUE3_LED           SECTION_LENGTH * 2
+#define BLUE3_LED_LENGTH    SECTION_LENGTH
+#define RED1_LED            SECTION_LENGTH * 5
+#define RED1_LED_LENGTH     SECTION_LENGTH
+#define RED2_LED            SECTION_LENGTH * 4
+#define RED2_LED_LENGTH     SECTION_LENGTH
+#define RED3_LED            SECTION_LENGTH * 3
+#define RED3_LED_LENGTH     SECTION_LENGTH
+#define HEARTBEAT_LED       NUM_LEDS - 1
+#define SOCKET_ACTIVITY_LED NUM_LEDS - 2
+#define RESERVED1           NUM_LEDS - 3
+#define RESERVED2           NUM_LEDS - 4
+#define RESERVED3           NUM_LEDS - 5
+#define RESERVED4           NUM_LEDS - 6
 
-// Define the base URL for the API
-const char* baseUrl = "http://192.168.10.124:8080";
-//const char* baseUrl = "http://10.0.100.5:8080";
+int g_Brightness = 255;//15;         // 0-255 LED brightness scale
+int g_PowerLimit = 50000;//900;        // 900mW Power Limit
+CRGB g_LEDs[NUM_LEDS] = {0};    // Frame buffer for FastLED
+const CRGB RED_COLOR = CRGB(255, 0, 0);
+const CRGB BLUE_COLOR = CRGB(0, 0, 175);
+const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
+const CRGB GREEN_COLOR = CRGB(0, 255, 0);
+const CRGB WHITE_COLOR = CRGB(20, 20, 20);
 
-// Define the IP address and DHCP/Static configuration
-extern String deviceIP;
-extern bool useDHCP;
+WebSocketsClient webSocket;
+int LT_MatchState = 0;
+bool socketDataActivity = false;
 
-// Pins connected to the stop button
-#define NUM_BUTTONS 7
+void hexdump(const void *mem, uint32_t len, uint8_t cols = 16) {
+	const uint8_t* src = (const uint8_t*) mem;
+	USE_SERIAL.printf("\n[HEXDUMP] Address: 0x%08X len: 0x%X (%d)", (ptrdiff_t)src, len, len);
+	for(uint32_t i = 0; i < len; i++) {
+		if(i % cols == 0) {
+			USE_SERIAL.printf("\n[0x%08X] 0x%08X: ", (ptrdiff_t)src, i);
+		}
+		USE_SERIAL.printf("%02X ", *src);
+		src++;
+	}
+	USE_SERIAL.printf("\n");
+}
 
-//C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32-s3-devkitm-1 -t upload
-#ifdef ESP32_S3_DEVKITM_1
-  const int stopButtonPins[NUM_BUTTONS] = {33,  //Field stop
-                                          1,   //1E stop
-                                          2,   //1A stop
-                                          3,   //2E stop
-                                          15,   //2A stop
-                                          18,   //3E stop
-                                          16};   //3A stop
-                                                      
-  #define START_MATCH_BTN 34
-  #define LEDSTRIP 47             // Pin connected to NeoPixel
-  #define NUM_LEDS 239            // Number of LEDs in the strip
-  int g_Brightness = 5;//15;         // 0-255 LED brightness scale
-  int g_PowerLimit = 50000;//900;        // 900mW Power Limit
-  CRGB g_LEDs[NUM_LEDS] = {0};    // Frame buffer for FastLED
+void setLEDColor(int ledIndex1, int length, bool status, CRGB color) {
+  if (status) {
+      for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+        g_LEDs[i] = color; // Set LED to color
+      }
+  } else {
+      for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+        g_LEDs[i] = CRGB::Black; // Turn off the LED
+      }
+  }
+}
 
-  //#define ONBOARD_LED 26 //Board does not have
-  #define ONBOARD_RGB 21
+bool coilValues[9]; // Adjust the size based on the number of coils you want to store
+JsonArray coils;
 
-  //Adafruit_NeoPixel onBoardRGB = Adafruit_NeoPixel(10, ONBOARD_RGB, NEO_GRB + NEO_KHZ800);
-#endif // ESP32_S3_DEVKITM_1
+void parser(String s){
+  socketDataActivity = !socketDataActivity;
+  DynamicJsonDocument doc(6145);
+	deserializeJson(doc, s);
+  JsonObject json= doc.as<JsonObject>();
 
-//C:\Users\Capplegate\.platformio\penv\Scripts\platformio.exe  run -e esp32dev -t upload
-#ifdef ESP32DEV
-  const int stopButtonPins[NUM_BUTTONS] = {21,  //Field stop
-                                          22,   //1E stop
-                                          23,   //1A stop
-                                          25,   //2E stop
-                                          26,   //2A stop
-                                          27,   //3E stop
-                                          32};   //3a stop
-  #define START_MATCH_BTN 19
-  #define LEDSTRIP 4           // Pin connected to NeoPixel
-  #define ONBOARD_LED 2
-#endif // ESP32DEV
+	const char* type = doc["type"]; // "arenaStatus, matchTime, ..."
 
+	JsonObject data = doc["data"];	// Most Jason Files have a "data" section
 
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, LEDSTRIP, NEO_GRB + NEO_KHZ800);
+	if(strcmp(type, "plcIoChange") == 0 ){
+
+    // set the match state
+    JsonArray registers = data["Registers"];
+    LT_MatchState = registers[6];
+    
+		// Print the Coils array
+    coils = data["Coils"];
+    USE_SERIAL.print("Coils: ");
+    int index = 0;
+    for (int i : {4,5,13, 14, 16, 17, 19, 20, 21}) {
+      if (i < coils.size()) {
+        bool coilValue = coils[i].as<bool>();
+        coilValues[index++] = coilValue; // Copy the value to the global arra
+        USE_SERIAL.print(coils[i].as<bool>());
+        USE_SERIAL.print(" ");
+      } else {
+        USE_SERIAL.print("N/A ");
+      }
+    }
+    USE_SERIAL.println();
+  
+  }
+
+}
+
+//A string to concat the socketData together
+String socketData;
+
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+	//USE_SERIAL.printf("type: %x\n", type);
+			
+	switch(type) {
+		case WStype_DISCONNECTED:
+			USE_SERIAL.printf("[WSc] Disconnected!\n");
+			break;
+		case WStype_CONNECTED:
+			USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
+			break;
+		case WStype_TEXT:
+			USE_SERIAL.printf("[WSc] get text: %s\n", payload);
+			socketData = (char * )payload;
+			parser(socketData);
+			break;
+		case WStype_BIN:
+			USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
+			hexdump(payload, length);
+			break;
+		case WStype_ERROR:	
+			USE_SERIAL.println("[************WSc ERROR***********]");		
+		case WStype_FRAGMENT_TEXT_START:
+			socketData = (char * )payload;
+			//USE_SERIAL.printf("[WSc] Fragment Text Start: %s\n", payload);
+			//USE_SERIAL.println(socketData);
+			//USE_SERIAL.println("WStype_FRAGMENT_TEXT_START");
+			break;
+		case WStype_FRAGMENT_BIN_START:
+		case WStype_FRAGMENT:
+			socketData += (char * )payload;
+			break;
+		case WStype_FRAGMENT_FIN:
+			socketData += (char * )payload; 
+			parser(socketData);
+			//USE_SERIAL.println(socketData);
+			break;
+		case WStype_PONG:
+			//USE_SERIAL.printf("[WSc] WStype_PONG: Ping reply\n");
+			break;
+	}
+
+}
 
 bool eth_connected = false;
-
 void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
   switch (event) {
     case ARDUINO_EVENT_WIFI_STA_START:
-      Serial.println("WiFi STA Started");
-      WiFi.setHostname("Freezy_Red");
+      USE_SERIAL.println("WiFi STA Started");
+      //WiFi.setHostname("Freezy_Red");
       break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.printf("WiFi STA Got IP: '%s'\n", WiFi.localIP().toString().c_str());
+      //USE_SERIAL.printf("WiFi STA Got IP: '%s'\n", WiFi.localIP().toString().c_str());
       eth_connected = true;
       break;
     case ARDUINO_EVENT_ETH_START:
-      Serial.println("ETH Started");
+      USE_SERIAL.println("ETH Started");
       //set eth hostname here
       ETH.setHostname("Freezy_ScoreTable");
       break;
     case ARDUINO_EVENT_ETH_CONNECTED: 
-      Serial.println("ETH Connected"); 
+      USE_SERIAL.println("ETH Connected"); 
       break;
     case ARDUINO_EVENT_ETH_GOT_IP:    
-      Serial.printf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif)); 
-      Serial.println(ETH);
+      USE_SERIAL.printf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif)); 
+      USE_SERIAL.println(ETH);
       eth_connected = true;
       break;
     case ARDUINO_EVENT_ETH_LOST_IP:
-      Serial.println("ETH Lost IP");
+      USE_SERIAL.println("ETH Lost IP");
       eth_connected = false;
       break;
     case ARDUINO_EVENT_ETH_DISCONNECTED:
-      Serial.println("ETH Disconnected");
+      USE_SERIAL.println("ETH Disconnected");
       eth_connected = false;
       break;
     case ARDUINO_EVENT_ETH_STOP:
-      Serial.println("ETH Stopped");
+      USE_SERIAL.println("ETH Stopped");
       eth_connected = false;
       break;
     default: break;
   }
 }
 
-IPAddress local_ip(192,168,10,220);
-IPAddress gateway(192,168,10,1);
-IPAddress subnet(255,255,255,0);
-IPAddress primaryDNS(8,8,8,8);
-IPAddress secondaryDNS(8,8,4,4);
-void intiWifi(){
-  WiFi.onEvent(onEvent);
-  //eth_connected = true;
-	WiFi.mode(WIFI_STA);
-	WiFi.config(local_ip,gateway,subnet,primaryDNS,secondaryDNS);
-	WiFi.begin(ssid, password);
-	USE_SERIAL.print("Connecting to WiFi .. ");
-	while(WiFi.status() != WL_CONNECTED){
-		USE_SERIAL.print('.');
-		delay(1000);
-	}
-	//WiFi.reconnect();
-	Serial.println("Connected to the WiFi network");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-	delay(3000);
-}
-
 
 // Setup function
 void setup() {
-  Serial.begin(115200);
+  USE_SERIAL.begin(115200);
   delay(5000);
 
   // Initialize the LED strip
-  FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS);               // Add our LED strip to the FastLED library
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(g_LEDs, NUM_LEDS).setCorrection(TypicalLEDStrip);;               // Add our LED strip to the FastLED library
 	FastLED.setBrightness(g_Brightness);
   //set_max_power_indicator_LED(LED_BUILTIN);                               // Light the builtin LED if we power throttle
   FastLED.setMaxPowerInMilliWatts(g_PowerLimit);                          // Set the power limit, above which brightness will be throttled
 
 
-  // Initialize the start match button
-  pinMode(START_MATCH_BTN, INPUT_PULLUP);
+  Network.onEvent(onEvent);
+  ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+    
+  // Wait for Ethernet to connect
+  while (!eth_connected) {
+    delay(100);
+  }
+  // Print the IP address
+  Serial.print("init - IP Address: ");
+  Serial.println(ETH.localIP());
 
+  // Connect to the WebSocket server
+  Serial.println("Connecting to WebSocket server...");
+  webSocket.setExtraHeaders("Origin: http://192.168.10.124:8080");
+  webSocket.begin("192.168.10.124", 8080, "ws://192.168.10.124:8080/setup/field_testing/websocket");
 
-   // Initialize the stop buttons
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-      pinMode(stopButtonPins[i], INPUT);
-  } 
-  
-   // Initialize preferences
-    preferences.begin("settings", false);
+  // event handler
+	webSocket.onEvent(webSocketEvent);
 
-    // Load IP address and DHCP/Static configuration from preferences
-    deviceIP = preferences.getString("deviceIP", "");
-    useDHCP = preferences.getBool("useDHCP", true);
-    g_allianceColor = preferences.getString("allianceColor", "Red");
-
-  #ifdef ESP32DEV
-    // Connect to the WiFi network
-    intiWifi();
-    pinMode(ONBOARD_LED, OUTPUT);
-  #endif // ESP32 
-
-  #ifdef ESP32_S3_DEVKITM_1
-    Network.onEvent(onEvent);
-    // Initialize Ethernet with DHCP or Static IP
-    if (useDHCP) {
-        ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
-    } else {
-        IPAddress localIP;
-        if (localIP.fromString(deviceIP)) {
-          Serial.println("Setting static IP address.");
-          // THis is not working Need to fix
-            ETH.config(localIP);
-            ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
-        } else {
-            Serial.println("Invalid static IP address. Falling back to DHCP.");
-            ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
-        }
-    }
-
-    // Wait for Ethernet to connect
-    while (!eth_connected) {
-        delay(100);
-    }
-    // Print the IP address
-    Serial.print("init - IP Address: ");
-    Serial.println(ETH.localIP());
-
-
-  #endif // ESP32
-
-
-  // Set up the web server
-  setupWebServer();
-
+  // try ever 5000 again if connection has failed
+	webSocket.setReconnectInterval(5000);
 }
+
+
+int heartbeatState = 1;
+bool endGameFlasher = false;
 
 // Main loop
 void loop() {
+  webSocket.loop();
   static unsigned long lastStatusCheck = 0;
   static unsigned long lastPrint = 0;
-    unsigned long currentMillis = millis();
-    FastLED.clear(); // Clear the LED strip
+  unsigned long currentMillis = millis();
+  FastLED.clear(); // Clear the LED strip
 
-    // Check if the start match button is pressed
-    if (digitalRead(START_MATCH_BTN) == LOW) {
-        Serial.println("Start match button pressed!");
-        startMatchPost();
-    }
-
-    // Create an array to store the states of the stop buttons
-  bool stopButtonStates[NUM_BUTTONS];
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-    stopButtonStates[i] = !digitalRead(stopButtonPins[i]);
-  }
-
-  // Call the postAllStopStatus method with the array
-  postAllStopStatus(stopButtonStates);
-
-
-/*     // Check if the stop buttons are pressed
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        if (digitalRead(stopButtonPins[i]) == HIGH) {
-            stopButtonPressed[i] = true;
-            if (stopButtonPressed[i]) {
-                Serial.printf("Stop button %d pressed!\n", i);
-            }
-            postSingleStopStatus(i, false);
-        } else{
-            stopButtonPressed[i] = false;
-            postSingleStopStatus(i, true);
+  switch(LT_MatchState){
+		case 0: //Pre Match
+			//MatchStatePre();
+      if(coilValues[0] || coilValues[1]){
+        setLEDColor(0, NUM_LEDS, true, GREEN_COLOR);
+      }else{
+        setLEDColor(0, NUM_LEDS, false, GREEN_COLOR);
+      }
+			break;
+		case 1 ... 5: //start Matct
+      //MatchStateAuto();
+      // If Endgame warning
+      if(coilValues[8]){
+        EVERY_N_MILLISECONDS(500){
+          endGameFlasher = !endGameFlasher;
         }
-    }
-     */
-    // Check alliance status every 500ms
-    if (currentMillis - lastStatusCheck >= 500) {
-        getField_stack_lightStatus();
-        lastStatusCheck = currentMillis;  
-    }
-    // print the IP address every 5 seconds
-    if (currentMillis - lastPrint >= 5000) {
-        lastPrint = currentMillis;
-        deviceIP = preferences.getString("deviceIP", "");
-        Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
-        useDHCP = preferences.getBool("useDHCP", true);
-        #ifdef ESP32DEV
-          Serial.printf("Current WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
-          digitalWrite(ONBOARD_LED, !digitalRead(ONBOARD_LED));
-        #endif
-        #ifdef ESP32_S3_DEVKITM_1
-          Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
-          
-        #endif
-        
-    }
+        setLEDColor(RED3_LED, RED1_LED_LENGTH + RED2_LED_LENGTH + RED3_LED_LENGTH, endGameFlasher, RED_COLOR);
+        setLEDColor(BLUE1_LED, BLUE1_LED_LENGTH + BLUE2_LED_LENGTH + BLUE3_LED_LENGTH, endGameFlasher, BLUE_COLOR);
+      }else{
+        // If not Playoffs
+        if(!coilValues[7]){
+          //If coopertition is active
+          if(coilValues[2] && coilValues[3] && coilValues[4] && coilValues[5]){
+            setLEDColor(RED3_LED, RED1_LED_LENGTH + RED2_LED_LENGTH + RED3_LED_LENGTH, true, RED_COLOR);
+            setLEDColor(BLUE1_LED, BLUE1_LED_LENGTH + BLUE2_LED_LENGTH + BLUE3_LED_LENGTH, true, BLUE_COLOR);
+          }else{
+            if(coilValues[2]){
+              setLEDColor(RED1_LED, RED1_LED_LENGTH, true, RED_COLOR);
+            }
+            if(coilValues[3]){
+              setLEDColor(RED2_LED, RED1_LED_LENGTH, true, RED_COLOR);
+            }/*  */
+            if(coilValues[4]){
+              setLEDColor(BLUE1_LED, BLUE1_LED_LENGTH, true, BLUE_COLOR);
+            }
+            if(coilValues[5]){
+              setLEDColor(BLUE2_LED, BLUE2_LED_LENGTH, true, BLUE_COLOR);
+            }
+          }
+        }else{
+          //is Playoffs
+          setLEDColor(RED3_LED, RED1_LED_LENGTH + RED2_LED_LENGTH + RED3_LED_LENGTH, true, RED_COLOR);
+          setLEDColor(BLUE1_LED, BLUE1_LED_LENGTH + BLUE2_LED_LENGTH + BLUE3_LED_LENGTH, true, BLUE_COLOR);
+        }
+      }
+      break;
+    case 6: //Post Match
+      //MatchStatePost();
+      if(coilValues[6]){
+        setLEDColor(RED3_LED, RED1_LED_LENGTH + RED2_LED_LENGTH + RED3_LED_LENGTH, true, RED_COLOR);
+        setLEDColor(BLUE1_LED, BLUE1_LED_LENGTH + BLUE2_LED_LENGTH + BLUE3_LED_LENGTH, true, BLUE_COLOR);
+      }
+    break;
+    case 7: //TimeoutActive
+      //MatchStateTimeout();
+      //setLEDColor(7, 1, true, BLUE_COLOR);
+      break;
+    case 8: //PostTimeout
+      //MatchStatePostTimeout();
+      //setLEDColor(8, 1, true, BLUE_COLOR);
+      break;
+		default:
+			//Do Nothing
+			break;
+	}
+
+  // print the IP address every 5 seconds
+  if (currentMillis - lastPrint >= 5000) {
+    lastPrint = currentMillis;
+    USE_SERIAL.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
+  }
     
-    int heartbeat_LED = 0;
     // Use a case statement to set the g_LEDs color based on the heartbeat variable
     switch (heartbeatState) {
         case 0:
-            g_LEDs[heartbeat_LED] = CRGB::Black;
+            g_LEDs[HEARTBEAT_LED] = CRGB::Black;
             break;
         case 1:
-            g_LEDs[heartbeat_LED] = CRGB::White; 
+            g_LEDs[HEARTBEAT_LED] = CRGB(20, 15, 25); 
             break;
         case 2:
-            g_LEDs[heartbeat_LED] = CRGB::Orange;
+            g_LEDs[HEARTBEAT_LED] = CRGB::Orange;
             break;
         default:
-            g_LEDs[heartbeat_LED] = CRGB::Red;
+            g_LEDs[HEARTBEAT_LED] = CRGB::Red;
             break;
     }
+
+    if(socketDataActivity){
+      g_LEDs[SOCKET_ACTIVITY_LED] = CRGB(20, 0, 0);
+    }else{
+      g_LEDs[SOCKET_ACTIVITY_LED] = CRGB::Black;
+    }
+    
     
     FastLED.show(g_Brightness); //  Show and delay
-    delay(500);
+
+    EVERY_N_MILLISECONDS(1000){
+      if(eth_connected){
+        if (heartbeatState == 0) {
+          heartbeatState = 1;
+        } else {
+          heartbeatState = 0;
+        }
+      }else      {
+        if (heartbeatState == 99) {
+          heartbeatState = 0;
+        } else {
+          heartbeatState = 99;
+        }
+      }
+    }
+
 }
