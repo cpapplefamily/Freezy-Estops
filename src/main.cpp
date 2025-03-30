@@ -33,11 +33,11 @@
 
 // Define the LED strip
 #define LED_PIN        	47
-#define NUM_LED_SRIPS  2
+#define NUM_LED_SRIPS  5
 #define NUM_LEDS_SRIPS_L  5
 #define NUM_LEDS_PER_M      30   
 #define NUM_LEDS       	(NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
-#define SECTION_LENGTH  49
+#define SECTION_LENGTH  124
 #define BLUE1_LED       0
 #define BLUE1_LED_LENGTH    SECTION_LENGTH
 #define BLUE2_LED           SECTION_LENGTH
@@ -246,8 +246,8 @@ void setup() {
 
   // Connect to the WebSocket server
   Serial.println("Connecting to WebSocket server...");
-  webSocket.setExtraHeaders("Origin: http://192.168.10.124:8080");
-  webSocket.begin("192.168.10.124", 8080, "ws://192.168.10.124:8080/setup/field_testing/websocket");
+  webSocket.setExtraHeaders("Origin: http://10.0.100.5:8080");
+  webSocket.begin("10.0.100.5", 8080, "ws://10.0.100.5:8080/setup/field_testing/websocket");
 
   // event handler
 	webSocket.onEvent(webSocketEvent);
