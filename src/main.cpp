@@ -21,11 +21,11 @@
 #define NUM_LED_SRIPS  5
 #define NUM_LEDS_SRIPS_L  5
 #define NUM_LEDS_PER_M      30   
-//#define NUM_LEDS       	(NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
-#define NUM_LEDS 300
+#define NUM_LEDS       	(NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
+//#define NUM_LEDS 15
 #define GROUPS 15
 #define LEDS_PER_GROUP (NUM_LEDS / GROUPS)
-#define BRIGHTNESS 50
+#define BRIGHTNESS 255
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 #define DELAY_TIME 1000 // 1 second delay for each LED group
@@ -86,7 +86,7 @@ void loop() {
   }
   
   // Last minute: Flash all LEDs
-  for (int i = 0; i < 60; i++) {
+  for (int i = 0; i < 120; i++) {
       for (int j = 0; j < NUM_LEDS; j++) {
           leds[j] = (i % 2 == 0) ? ((j < NUM_LEDS / 2) ? CRGB::Blue : CRGB::Red) : CRGB::Black;
       }
