@@ -30,7 +30,7 @@ void startMatchPost() {
         serializeJson(payload, jsonPayload);
 
         // Configure HTTP POST request
-        String url = String(baseUrl) + "/freezy/startMatch";
+        String url = String(baseUrl) + "/api/freezy/startMatch";
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
 

@@ -54,7 +54,7 @@ void postSingleStopStatus(int i, bool stopButtonPressed) {
        
 
         // Configure HTTP POST request
-        String url = String(baseUrl) + "/freezy/eStopState";
+        String url = String(baseUrl) + "/api/freezy/eStopState";
         Serial.println("URL: " + url); // Print the URL
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
@@ -116,7 +116,7 @@ void postAllStopStatus(bool stopButtonStates[7]) {
         serializeJson(payload, jsonString);
         
         // Configure HTTP POST request
-        String url = String(baseUrl) + "/freezy/eStopState";
+        String url = String(baseUrl) + "/api/freezy/eStopState";
         Serial.println("URL: " + url); // Print the URL
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
