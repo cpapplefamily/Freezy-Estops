@@ -64,7 +64,7 @@ void getField_stack_lightStatus() {
             //hartBeatTck = currentTime + 500;
             
             HTTPClient http;
-            String url = "http://" + arenaIP + ":" + arenaPort + "/field_stack_light";
+            String url = "http://" + arenaIP + ":" + arenaPort + "/api/freezy/field_stack_light";
             http.begin(url);
             int httpResponseCode = http.GET();
 
