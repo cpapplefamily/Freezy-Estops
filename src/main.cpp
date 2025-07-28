@@ -46,6 +46,7 @@ const char* baseUrl = "http://192.168.10.124:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceIP;
+extern String deviceGWIP;
 extern bool useDHCP;
 
 // Pins connected to the stop button
@@ -133,7 +134,7 @@ void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
 }
 
 IPAddress local_ip(192,168,10,220);
-IPAddress gateway(192,168,10,1);
+IPAddress local_gateway(192,168,10,1);
 IPAddress subnet(255,255,255,0);
 IPAddress primaryDNS(8,8,8,8);
 IPAddress secondaryDNS(8,8,4,4);
@@ -141,7 +142,7 @@ void intiWifi(){
   WiFi.onEvent(onEvent);
   //eth_connected = true;
 	WiFi.mode(WIFI_STA);
-	WiFi.config(local_ip,gateway,subnet,primaryDNS,secondaryDNS);
+	WiFi.config(local_ip,local_gateway,subnet,primaryDNS,secondaryDNS);
 	WiFi.begin(ssid, password);
 	USE_SERIAL.print("Connecting to WiFi .. ");
 	while(WiFi.status() != WL_CONNECTED){
@@ -182,6 +183,7 @@ void setup() {
 
     // Load IP address and DHCP/Static configuration from preferences
     deviceIP = preferences.getString("deviceIP", "");
+    deviceGWIP = preferences.getString("deviceGWIP", "");
     useDHCP = preferences.getBool("useDHCP", true);
     g_allianceColor = preferences.getString("allianceColor", "Red");
 
@@ -198,11 +200,13 @@ void setup() {
         ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
     } else {
         IPAddress localIP;
+        IPAddress localGW;
         if (localIP.fromString(deviceIP)) {
           Serial.println("Setting static IP address.");
           // THis is not working Need to fix
-            ETH.config(localIP);
-            ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+          localGW.fromString(deviceGWIP);
+          ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+          ETH.config(localIP, localGW, subnet, primaryDNS, secondaryDNS);
         } else {
             Serial.println("Invalid static IP address. Falling back to DHCP.");
             ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);

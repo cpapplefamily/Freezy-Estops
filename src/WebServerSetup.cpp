@@ -7,6 +7,7 @@ extern String allianceColor;
 extern String arenaIP;
 extern bool useDHCP;
 extern String deviceIP;
+extern String deviceGWIP;
 extern String arenaPort;
 
 void setupWebServer() {
@@ -18,6 +19,7 @@ void setupWebServer() {
 
     // Load IP address and DHCP/Static configuration from preferences
     deviceIP = preferences.getString("deviceIP", "");
+    deviceGWIP = preferences.getString("deviceGateway", "10.0.100.1");
     useDHCP = preferences.getBool("useDHCP", true);
 
     // Set up the web server routes
@@ -44,8 +46,13 @@ void setupWebServer() {
                       "</select><br><br>"
                       "<input type=\"checkbox\" id=\"dhcp\" name=\"dhcp\" " + String(useDHCP ? "checked" : "") + " onchange=\"toggleIPInput()\">"
                       "<label for=\"dhcp\">Use DHCP</label><br><br>"
+                      
                       "<label for=\"ip\">Device IP: </label>"
                       "<input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + deviceIP + "\"" + (useDHCP ? " disabled" : "") + "><br><br>"
+
+                      "<label for=\"gw\">Gateway IP: </label>"
+                      "<input type=\"text\" id=\"gw\" name=\"gw\" value=\"" + deviceGWIP + "\"" + (useDHCP ? " disabled" : "") + "><br><br>"
+
                       "<label for=\"arenaIP\">Arena IP: </label>"
                       "<input type=\"text\" id=\"arenaIP\" name=\"arenaIP\" value=\"" + arenaIP + "\">"
                       "<label for=\"arenaPort\"> Port: </label>"
@@ -55,8 +62,10 @@ void setupWebServer() {
                       "<script>"
                       "function toggleIPInput() {"
                       "  var dhcpCheckbox = document.getElementById('dhcp');"
-                      "  var ipInput = document.getElementById('ip');"
-                      "  ipInput.disabled = dhcpCheckbox.checked;"
+                      "  var ipInput1 = document.getElementById('ip');"
+                      "  ipInput1.disabled = dhcpCheckbox.checked;"
+                      "  var ipInput2 = document.getElementById('gw');"
+                      "  ipInput2.disabled = dhcpCheckbox.checked;"
                       "}"
                       "</script>"
                       "</body></html>";
@@ -72,6 +81,10 @@ void setupWebServer() {
         if (request->hasParam("ip", true)) {
             deviceIP = request->getParam("ip", true)->value();
             preferences.putString("deviceIP", deviceIP);
+        }
+        if (request->hasParam("gw", true)) {
+            deviceGWIP = request->getParam("gw", true)->value();
+            preferences.putString("deviceGWIP", deviceGWIP);
         }
         if (request->hasParam("arenaIP", true)) {
             arenaIP = request->getParam("arenaIP", true)->value();
