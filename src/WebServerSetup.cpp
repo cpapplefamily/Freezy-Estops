@@ -19,7 +19,7 @@ void setupWebServer() {
 
     // Load IP address and DHCP/Static configuration from preferences
     deviceIP = preferences.getString("deviceIP", "");
-    deviceGWIP = preferences.getString("deviceGateway", "10.0.100.1");
+    deviceGWIP = preferences.getString("deviceGateway", "");
     useDHCP = preferences.getBool("useDHCP", true);
 
     // Set up the web server routes
@@ -46,26 +46,32 @@ void setupWebServer() {
                       "</select><br><br>"
                       "<input type=\"checkbox\" id=\"dhcp\" name=\"dhcp\" " + String(useDHCP ? "checked" : "") + " onchange=\"toggleIPInput()\">"
                       "<label for=\"dhcp\">Use DHCP</label><br><br>"
-                      
+
+                      "<fieldset id=\"staticIPFields\" " + String(useDHCP ? "disabled" : "") + ">"
+                      "<legend>Static Network Configuration</legend>"
                       "<label for=\"ip\">Device IP: </label>"
-                      "<input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + deviceIP + "\"" + (useDHCP ? " disabled" : "") + "><br><br>"
-
+                      "<input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + deviceIP + "\"><br><br>"
                       "<label for=\"gw\">Gateway IP: </label>"
-                      "<input type=\"text\" id=\"gw\" name=\"gw\" value=\"" + deviceGWIP + "\"" + (useDHCP ? " disabled" : "") + "><br><br>"
+                      "<input type=\"text\" id=\"gw\" name=\"gw\" value=\"" + deviceGWIP + "\"><br><br>"
+                      "</fieldset>"
 
+                      "<br><br>"
+                      "<fieldset id=\"arenaIPFields\">"
+                      "<legend>Freezy Arena Network Configuration</legend>"
                       "<label for=\"arenaIP\">Arena IP: </label>"
                       "<input type=\"text\" id=\"arenaIP\" name=\"arenaIP\" value=\"" + arenaIP + "\">"
                       "<label for=\"arenaPort\"> Port: </label>"
                       "<input type=\"text\" id=\"arenaPort\" name=\"arenaPort\" value=\"" + String(arenaPort) + "\"><br><br>"
+                      "</fieldset>"
+
+                      "<br><br>"
                       "<input type=\"submit\" value=\"Submit\">"
                       "</form>"
                       "<script>"
                       "function toggleIPInput() {"
                       "  var dhcpCheckbox = document.getElementById('dhcp');"
-                      "  var ipInput1 = document.getElementById('ip');"
-                      "  ipInput1.disabled = dhcpCheckbox.checked;"
-                      "  var ipInput2 = document.getElementById('gw');"
-                      "  ipInput2.disabled = dhcpCheckbox.checked;"
+                      "  var staticIPFields = document.getElementById('staticIPFields');"
+                      "  staticIPFields.disabled = dhcpCheckbox.checked;"
                       "}"
                       "</script>"
                       "</body></html>";

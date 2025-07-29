@@ -234,7 +234,7 @@ void setup() {
 void loop() {
   static unsigned long lastStatusCheck = 0;
   static unsigned long lastPrint = 0;
-    unsigned long currentMillis = millis();
+  unsigned long currentMillis = millis();
     FastLED.clear(); // Clear the LED strip
 
     // Check if the start match button is pressed
@@ -253,20 +253,7 @@ void loop() {
   postAllStopStatus(stopButtonStates);
 
 
-/*     // Check if the stop buttons are pressed
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        if (digitalRead(stopButtonPins[i]) == HIGH) {
-            stopButtonPressed[i] = true;
-            if (stopButtonPressed[i]) {
-                Serial.printf("Stop button %d pressed!\n", i);
-            }
-            postSingleStopStatus(i, false);
-        } else{
-            stopButtonPressed[i] = false;
-            postSingleStopStatus(i, true);
-        }
-    }
-     */
+
     // Check alliance status every 500ms
     if (currentMillis - lastStatusCheck >= 500) {
         getField_stack_lightStatus();
@@ -277,7 +264,11 @@ void loop() {
         lastPrint = currentMillis;
         deviceIP = preferences.getString("deviceIP", "");
         Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
+        deviceGWIP = preferences.getString("deviceGWIP", "");
+        Serial.printf("Preferences Gateway IP Address: %s\n", deviceGWIP.c_str());
         useDHCP = preferences.getBool("useDHCP", true);
+        Serial.printf("Preferences useDHCP: %s\n", useDHCP ? "true" : "false");
+
         #ifdef ESP32DEV
           Serial.printf("Current WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
           digitalWrite(ONBOARD_LED, !digitalRead(ONBOARD_LED));

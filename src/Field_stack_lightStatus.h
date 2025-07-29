@@ -114,6 +114,7 @@ void getField_stack_lightStatus() {
                     heartbeatState = 0;
                 }
             } else {
+                Serial.println("getField_stack_lightStatus");
                 Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
                 //heartbeat = !heartbeat; // Toggle heartbeat
                 //setLEDColor(1, 1, heartbeat, ORANGE_COLOR); // Orange
