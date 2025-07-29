@@ -21,6 +21,7 @@
 #include "Field_stack_lightStatus.h" // Include the Field_stack_lightStatus header
 #include "WebServerSetup.h"          // Include the WebServerSetup header
 #include "GlobalSettings.h"          // Include the GlobalSettings header
+#include <WebSocketsClient.h>
 
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE ETH_PHY_W5500
@@ -61,11 +62,43 @@ const int stopButtonPins[NUM_BUTTONS] = {33,  // Field stop
                                          16}; // 3A stop
 
 #define START_MATCH_BTN 34
+
+
+// Define the LED strip
 #define LEDSTRIP 47          // Pin connected to NeoPixel
-#define NUM_LEDS 239         // Number of LEDs in the strip
-int g_Brightness = 5;        // 15;         // 0-255 LED brightness scale
-int g_PowerLimit = 50000;    // 900;        // 900mW Power Limit
-CRGB g_LEDs[NUM_LEDS] = {0}; // Frame buffer for FastLED
+#define NUM_LED_SRIPS  5
+#define NUM_LEDS_SRIPS_L  5
+#define NUM_LEDS_PER_M      30   
+#define NUM_LEDS       	(NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
+#define SECTION_LENGTH  124
+#define BLUE1_LED       0
+#define BLUE1_LED_LENGTH    SECTION_LENGTH
+#define BLUE2_LED           SECTION_LENGTH
+#define BLUE2_LED_LENGTH    SECTION_LENGTH
+#define BLUE3_LED           SECTION_LENGTH * 2
+#define BLUE3_LED_LENGTH    SECTION_LENGTH
+#define RED1_LED            SECTION_LENGTH * 5
+#define RED1_LED_LENGTH     SECTION_LENGTH
+#define RED2_LED            SECTION_LENGTH * 4
+#define RED2_LED_LENGTH     SECTION_LENGTH
+#define RED3_LED            SECTION_LENGTH * 3
+#define RED3_LED_LENGTH     SECTION_LENGTH
+#define HEARTBEAT_LED       NUM_LEDS - 1
+#define SOCKET_ACTIVITY_LED NUM_LEDS - 2
+#define RESERVED1           NUM_LEDS - 3
+#define RESERVED2           NUM_LEDS - 4
+#define RESERVED3           NUM_LEDS - 5
+#define RESERVED4           NUM_LEDS - 6
+
+int g_Brightness = 255;//15;         // 0-255 LED brightness scale
+int g_PowerLimit = 50000;//900;        // 900mW Power Limit
+CRGB g_LEDs[NUM_LEDS] = {0};    // Frame buffer for FastLED
+const CRGB RED_COLOR = CRGB(255, 0, 0);
+const CRGB BLUE_COLOR = CRGB(0, 0, 175);
+const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
+const CRGB GREEN_COLOR = CRGB(0, 255, 0);
+const CRGB WHITE_COLOR = CRGB(20, 20, 20);
+
 
 // #define ONBOARD_LED 26 //Board does not have
 #define ONBOARD_RGB 21
@@ -87,10 +120,122 @@ const int stopButtonPins[NUM_BUTTONS] = {21,  // Field stop
 #define ONBOARD_LED 2
 #endif // ESP32DEV
 
-// Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, LEDSTRIP, NEO_GRB + NEO_KHZ800);
+WebSocketsClient webSocket;
+int LT_MatchState = 0;
+bool socketDataActivity = false;
+
+void hexdump(const void *mem, uint32_t len, uint8_t cols = 16) {
+	const uint8_t* src = (const uint8_t*) mem;
+	USE_SERIAL.printf("\n[HEXDUMP] Address: 0x%08X len: 0x%X (%d)", (ptrdiff_t)src, len, len);
+	for(uint32_t i = 0; i < len; i++) {
+		if(i % cols == 0) {
+			USE_SERIAL.printf("\n[0x%08X] 0x%08X: ", (ptrdiff_t)src, i);
+		}
+		USE_SERIAL.printf("%02X ", *src);
+		src++;
+	}
+	USE_SERIAL.printf("\n");
+}
+
+void setLED_Color(int ledIndex1, int length, bool status, CRGB color) {
+  if (status) {
+      for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+        g_LEDs[i] = color; // Set LED to color
+      }
+  } else {
+      for (int i = ledIndex1; i < ledIndex1 + length; i++) {
+        g_LEDs[i] = CRGB::Black; // Turn off the LED
+      }
+  }
+}
+
+bool coilValues[14]; // Adjust the size based on the number of coils you want to store
+JsonArray coils;
+
+void parser(String s){
+  socketDataActivity = !socketDataActivity;
+  DynamicJsonDocument doc(6145);
+	deserializeJson(doc, s);
+  JsonObject json= doc.as<JsonObject>();
+
+	const char* type = doc["type"]; // "arenaStatus, matchTime, ..."
+
+	JsonObject data = doc["data"];	// Most Jason Files have a "data" section
+
+	if(strcmp(type, "plcIoChange") == 0 ){
+
+    // set the match state
+    JsonArray registers = data["Registers"];
+    LT_MatchState = registers[6];
+    
+		// Print the Coils array
+    coils = data["Coils"];
+    USE_SERIAL.print("Coils: ");
+    int index = 0;
+    for (int i : {0,1,2,3,4,5,6,7,8,9,10,11,12,13}) {
+      if (i < coils.size()) {
+        bool coilValue = coils[i].as<bool>();
+        coilValues[index++] = coilValue; // Copy the value to the global arra
+        USE_SERIAL.print(coils[i].as<bool>());
+        USE_SERIAL.print(" ");
+      } else {
+        USE_SERIAL.print("N/A ");
+      }
+    }
+    USE_SERIAL.println();
+  
+  }
+
+}
+
+//A string to concat the socketData together
+String socketData;
+
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+	//USE_SERIAL.printf("type: %x\n", type);
+			
+	switch(type) {
+		case WStype_DISCONNECTED:
+			USE_SERIAL.printf("[WSc] Disconnected!\n");
+			break;
+		case WStype_CONNECTED:
+			USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
+			break;
+		case WStype_TEXT:
+			USE_SERIAL.printf("[WSc] get text: %s\n", payload);
+			socketData = (char * )payload;
+			parser(socketData);
+			break;
+		case WStype_BIN:
+			USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
+			hexdump(payload, length);
+			break;
+		case WStype_ERROR:	
+			USE_SERIAL.println("[************WSc ERROR***********]");		
+		case WStype_FRAGMENT_TEXT_START:
+			socketData = (char * )payload;
+			//USE_SERIAL.printf("[WSc] Fragment Text Start: %s\n", payload);
+			//USE_SERIAL.println(socketData);
+			//USE_SERIAL.println("WStype_FRAGMENT_TEXT_START");
+			break;
+		case WStype_FRAGMENT_BIN_START:
+		case WStype_FRAGMENT:
+			socketData += (char * )payload;
+			break;
+		case WStype_FRAGMENT_FIN:
+			socketData += (char * )payload; 
+			parser(socketData);
+			//USE_SERIAL.println(socketData);
+			break;
+		case WStype_PONG:
+			//USE_SERIAL.printf("[WSc] WStype_PONG: Ping reply\n");
+			break;
+	}
+
+}
+
 
 bool eth_connected = false;
-
 void onEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
   switch (event)
@@ -165,23 +310,23 @@ void setup()
   delay(5000);
 
   // Initialize the LED strip
-  FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS); // Add our LED strip to the FastLED library
+  FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS).setCorrection(TypicalLEDStrip); // Add our LED strip to the FastLED library
   FastLED.setBrightness(g_Brightness);
   // set_max_power_indicator_LED(LED_BUILTIN);                               // Light the builtin LED if we power throttle
   FastLED.setMaxPowerInMilliWatts(g_PowerLimit); // Set the power limit, above which brightness will be throttled
+  
+    // Initialize the start match button
+    pinMode(START_MATCH_BTN, INPUT_PULLUP);
 
-  // Initialize the start match button
-  pinMode(START_MATCH_BTN, INPUT_PULLUP);
-
-  // Initialize the stop buttons
-  for (int i = 0; i < NUM_BUTTONS; i++)
-  {
-    pinMode(stopButtonPins[i], INPUT);
-  }
+    // Initialize the stop buttons
+    for (int i = 0; i < NUM_BUTTONS; i++)
+    {
+      pinMode(stopButtonPins[i], INPUT);
+    }
 
   // Initialize preferences
   preferences.begin("settings", false);
-
+  
   // Load IP address and DHCP/Static configuration from preferences
   deviceIP = preferences.getString("deviceIP", "");
   deviceGWIP = preferences.getString("deviceGWIP", "");
@@ -232,42 +377,93 @@ void setup()
 
   // Set up the web server
   setupWebServer();
+
+   // Connect to the WebSocket server
+  Serial.println("Connecting to WebSocket server...");
+  webSocket.setExtraHeaders("Origin: http://192.168.10.124:8080");
+  webSocket.begin("192.168.10.124", 8080, "ws://192.168.10.124:8080/setup/field_testing/websocket");
+
+  // event handler
+	webSocket.onEvent(webSocketEvent);
+
+  // try ever 5000 again if connection has failed
+	webSocket.setReconnectInterval(5000);
+
 }
 
 // Main loop
 void loop()
 {
+  webSocket.loop(); // Handle WebSocket events
   static unsigned long lastStatusCheck = 0;
   static unsigned long lastPrint = 0;
   unsigned long currentMillis = millis();
   deviceRole = preferences.getString("deviceRole", "RED_ALLIANCE");
   FastLED.clear(); // Clear the LED strip
 
-  // Check if the start match button is pressed
-  if (digitalRead(START_MATCH_BTN) == LOW)
-  {
-    Serial.println("Start match button pressed!");
-    startMatchPost();
-  }
+  // Skip the postAllStopStatus if the deviceRole is BARGE_LIGHTS
+  if (deviceRole == "BARGE_LIGHTS"){
+    switch(LT_MatchState){
+      case 0: //Pre Match
+        //MatchStatePre();
+        if(coilValues[7]){
+          setLED_Color(0, NUM_LEDS, true, GREEN_COLOR);
+        }else{
+          setLED_Color(0, NUM_LEDS, false, GREEN_COLOR);
+        }
+        break;
+      case 1 ... 6: //start Matct
+        //MatchStateAuto();
+        setLED_Color(RED1_LED, RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+        setLED_Color(RED2_LED, RED1_LED_LENGTH, coilValues[9], RED_COLOR);
+        setLED_Color(RED3_LED, RED1_LED_LENGTH + RED2_LED_LENGTH + RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+        setLED_Color(BLUE1_LED, BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+        setLED_Color(BLUE2_LED, BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+        setLED_Color(BLUE1_LED, BLUE1_LED_LENGTH + BLUE2_LED_LENGTH + BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+        break;
+      //case 6: //Post Match
+        //MatchStatePost();
+      break;
+      case 7: //TimeoutActive
+        //MatchStateTimeout();
+        //setLED_Color(7, 1, true, BLUE_COLOR);
+        break;
+      case 8: //PostTimeout
+        //MatchStatePostTimeout();
+        //setLED_Color(8, 1, true, BLUE_COLOR);
+        break;
+      default:
+        //Do Nothing
+        break;
+    }
 
-  // Create an array to store the states of the stop buttons
-  bool stopButtonStates[NUM_BUTTONS];
-  for (int i = 0; i < NUM_BUTTONS; i++)
-  {
-    stopButtonStates[i] = !digitalRead(stopButtonPins[i]);
-  }
+  }else{
+    // Create an array to store the states of the stop buttons
+    bool stopButtonStates[NUM_BUTTONS];
+    for (int i = 0; i < NUM_BUTTONS; i++)
+    {
+      stopButtonStates[i] = !digitalRead(stopButtonPins[i]);
+    }
+    // Call the postAllStopStatus method with the array
+    postAllStopStatus(stopButtonStates);
 
-  // Call the postAllStopStatus method with the array
-  postAllStopStatus(stopButtonStates);
+    // Check alliance status every 500ms
+    if (currentMillis - lastStatusCheck >= 500)
+    {
+      if (deviceRole == "FMS_TABLE"){
+        // Check if the start match button is pressed
+        if (digitalRead(START_MATCH_BTN) == LOW)
+        {
+            Serial.println("Start match button pressed!");
+            startMatchPost();
+        }
 
-  // Check alliance status every 500ms
-  if (currentMillis - lastStatusCheck >= 500)
-  {
-    if (deviceRole == "FMS_TABLE"){
-      getField_stack_lightStatus();
-    };
-    lastStatusCheck = currentMillis;
-  }
+        getField_stack_lightStatus();
+      };
+      lastStatusCheck = currentMillis;
+    }
+  };
+  
   // print the IP address every 5 seconds
   if (currentMillis - lastPrint >= 5000)
   {

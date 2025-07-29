@@ -54,11 +54,11 @@ void setLEDColor(int ledIndex1, int length, bool status, CRGB color)
     }
 }
 
-const CRGB RED_COLOR = CRGB(255, 0, 0);
-const CRGB BLUE_COLOR = CRGB(0, 0, 255);
-const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
-const CRGB GREEN_COLOR = CRGB(0, 255, 0);
-const CRGB WHITE_COLOR = CRGB(20, 20, 20);
+const CRGB _RED_COLOR = CRGB(255, 0, 0);
+const CRGB _BLUE_COLOR = CRGB(0, 0, 255);
+const CRGB _ORANGE_COLOR = CRGB(150, 100, 0);
+const CRGB _GREEN_COLOR = CRGB(0, 255, 0);
+const CRGB _WHITE_COLOR = CRGB(20, 20, 20);
 int heartbeatState = 0;
 long int hartBeatTck = 0;
 long int currentTime = 0;
@@ -102,30 +102,30 @@ void getField_stack_lightStatus()
             bool greenStackLightStatus = doc.containsKey("greenStackLight") ? doc["greenStackLight"].as<bool>() : false;
             if (deviceRole == "FMS_TABLE")
             {
-                setLEDColor(2, 60, redStackLightStatus, RED_COLOR);         // Red
-                setLEDColor(60, 60, blueStackLightStatus, BLUE_COLOR);      // Blue
-                setLEDColor(120, 60, orangeStackLightStatus, ORANGE_COLOR); // Orange
-                setLEDColor(180, 56, greenStackLightStatus, GREEN_COLOR);   // Green
+                setLEDColor(2, 60, redStackLightStatus, _RED_COLOR);         // Red
+                setLEDColor(60, 60, blueStackLightStatus, _BLUE_COLOR);      // Blue
+                setLEDColor(120, 60, orangeStackLightStatus, _ORANGE_COLOR); // Orange
+                setLEDColor(180, 56, greenStackLightStatus, _GREEN_COLOR);   // Green
             }
             else if (deviceRole == "RED_ALLIANCE")
             {
-                setLEDColor(1, 1, true, RED_COLOR);  // RED
-                setLEDColor(2, 8, false, RED_COLOR); // RED
+                setLEDColor(1, 1, true, _RED_COLOR);  // RED
+                setLEDColor(2, 8, false, _RED_COLOR); // RED
             }
             else if (deviceRole == "BLUE_ALLIANCE")
             {
-                setLEDColor(1, 1, true, BLUE_COLOR);  // BLUE
-                setLEDColor(2, 8, false, BLUE_COLOR); // RED
+                setLEDColor(1, 1, true, _BLUE_COLOR);  // BLUE
+                setLEDColor(2, 8, false, _BLUE_COLOR); // RED
             }
             else
             {
-                setLEDColor(1, 1, true, ORANGE_COLOR); // ORANGE
+                setLEDColor(1, 1, true, _ORANGE_COLOR); // ORANGE
             }
 
             // Print the JSON data
             // serializeJsonPretty(doc, Serial);
             // heartbeat = !heartbeat; // Toggle heartbeat
-            // setLEDColor(1, 1, heartbeat, WHITE_COLOR); // White
+            // setLEDColor(1, 1, heartbeat, _WHITE_COLOR); // White
             if (heartbeatState == 0)
             {
                 heartbeatState = 1;
@@ -140,7 +140,7 @@ void getField_stack_lightStatus()
             Serial.println("getField_stack_lightStatus");
             Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
             // heartbeat = !heartbeat; // Toggle heartbeat
-            // setLEDColor(1, 1, heartbeat, ORANGE_COLOR); // Orange
+            // setLEDColor(1, 1, heartbeat, _ORANGE_COLOR); // Orange
             if (heartbeatState == 0)
             {
                 heartbeatState = 2;
@@ -157,7 +157,7 @@ void getField_stack_lightStatus()
     {
         Serial.println("Network not connected! [FSL]");
         // heartbeat = !heartbeat; // Toggle heartbeat
-        // setLEDColor(1, 1, heartbeat, ORANGE_COLOR); // Red
+        // setLEDColor(1, 1, heartbeat, _ORANGE_COLOR); // Red
         if (heartbeatState == 0)
         {
             heartbeatState = 3;
