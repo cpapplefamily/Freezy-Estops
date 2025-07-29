@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 
-// Declare the allianceColor variable
-String allianceColor;
+// Declare the deviceRole variable
+String deviceRole;
 
 // Declare the arenaIP variable
 String arenaIP;
@@ -18,6 +18,5 @@ bool useDHCP;
 // Declare the deviceIP variable
 String deviceIP;
 String deviceGWIP;
-
 
 #endif // GLOBALSETTINGS_H
