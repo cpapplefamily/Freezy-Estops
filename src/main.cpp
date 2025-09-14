@@ -234,6 +234,8 @@ void setup()
   // Set up the web server
   setupWebServer();
 }
+bool stopButtonStates[NUM_BUTTONS-1];
+bool startButtonState = false;
 
 // Main loop
 void loop()
@@ -249,7 +251,6 @@ void loop()
   {
     setLEDColor(1, 1, true, RED_COLOR);  // RED
     // Create an array to store the states of the stop buttons
-    bool stopButtonStates[NUM_BUTTONS-1];
     for (int i = 0; i < NUM_BUTTONS-1; i++)
     {
       stopButtonStates[i] = !digitalRead(stopButtonPins[i+1]);
@@ -262,7 +263,6 @@ void loop()
   {
     setLEDColor(1, 1, true, BLUE_COLOR);  // RED
     // Create an array to store the states of the stop buttons
-    bool stopButtonStates[NUM_BUTTONS-1];
     for (int i = 0; i < NUM_BUTTONS-1; i++)
     {
       stopButtonStates[i] = !digitalRead(stopButtonPins[i+1]);
@@ -275,13 +275,15 @@ void loop()
   {
     setLEDColor(1, 1, true, VIOLET_COLOR);  // RED
     // Check if the start match button is pressed
-    if (digitalRead(START_MATCH_BTN) == LOW)
+    startButtonState = !digitalRead(START_MATCH_BTN);
+    if (startButtonState)
     {
       Serial.println("Start match button pressed!");
       startMatchPost();
     }
     
-    postSingleStopStatus(0, !digitalRead(stopButtonPins[0]));
+    stopButtonStates[0] = !digitalRead(stopButtonPins[0]);
+    postSingleStopStatus(0, stopButtonStates[0]);
 
     // Check alliance status every 500ms
     if (currentMillis - lastStatusCheck >= 500)
