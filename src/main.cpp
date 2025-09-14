@@ -37,8 +37,8 @@
 #define USE_SERIAL Serial
 
 // Define the base URL for the API
-const char *baseUrl = "http://192.168.10.124:8080";
-// const char* baseUrl = "http://10.0.100.5:8080";
+//const char *baseUrl = "http://192.168.10.124:8080";
+const char* baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceRole;
@@ -90,6 +90,7 @@ const int stopButtonPins[NUM_BUTTONS] = {21,  // Field stop
 // Adafruit_NeoPixel strip = Adafruit_NeoPixel(20, LEDSTRIP, NEO_GRB + NEO_KHZ800);
 
 bool eth_connected = false;
+int heartbeatState = 0;
 
 void onEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
@@ -241,33 +242,56 @@ void loop()
   static unsigned long lastPrint = 0;
   unsigned long currentMillis = millis();
   deviceRole = preferences.getString("deviceRole", "RED_ALLIANCE");
-  FastLED.clear(); // Clear the LED strip
+  //FastLED.clear(); // Clear the LED strip
 
-  // Check if the start match button is pressed
-  if (digitalRead(START_MATCH_BTN) == LOW)
+ 
+  if (deviceRole == "RED_ALLIANCE")
   {
-    Serial.println("Start match button pressed!");
-    startMatchPost();
+    setLEDColor(1, 1, true, RED_COLOR);  // RED
+    // Create an array to store the states of the stop buttons
+    bool stopButtonStates[NUM_BUTTONS-1];
+    for (int i = 0; i < NUM_BUTTONS-1; i++)
+    {
+      stopButtonStates[i] = !digitalRead(stopButtonPins[i+1]);
+    }
+    
+    // Call the postAllStopStatus method with the array
+    postAllStopStatus(stopButtonStates,1);
   }
-
-  // Create an array to store the states of the stop buttons
-  bool stopButtonStates[NUM_BUTTONS];
-  for (int i = 0; i < NUM_BUTTONS; i++)
+  else if (deviceRole == "BLUE_ALLIANCE")
   {
-    stopButtonStates[i] = !digitalRead(stopButtonPins[i]);
+    setLEDColor(1, 1, true, BLUE_COLOR);  // RED
+    // Create an array to store the states of the stop buttons
+    bool stopButtonStates[NUM_BUTTONS-1];
+    for (int i = 0; i < NUM_BUTTONS-1; i++)
+    {
+      stopButtonStates[i] = !digitalRead(stopButtonPins[i+1]);
+    }
+    
+    // Call the postAllStopStatus method with the array
+    postAllStopStatus(stopButtonStates,7);
   }
-
-  // Call the postAllStopStatus method with the array
-  postAllStopStatus(stopButtonStates);
-
-  // Check alliance status every 500ms
-  if (currentMillis - lastStatusCheck >= 500)
+  else if (deviceRole == "FMS_TABLE")
   {
-    if (deviceRole == "FMS_TABLE"){
+    setLEDColor(1, 1, true, VIOLET_COLOR);  // RED
+    // Check if the start match button is pressed
+    if (digitalRead(START_MATCH_BTN) == LOW)
+    {
+      Serial.println("Start match button pressed!");
+      startMatchPost();
+    }
+    
+    postSingleStopStatus(0, !digitalRead(stopButtonPins[0]));
+
+    // Check alliance status every 500ms
+    if (currentMillis - lastStatusCheck >= 500)
+    {
       getField_stack_lightStatus();
-    };
-    lastStatusCheck = currentMillis;
+      lastStatusCheck = currentMillis;
+    }
   }
+
+
   // print the IP address every 5 seconds
   if (currentMillis - lastPrint >= 5000)
   {
