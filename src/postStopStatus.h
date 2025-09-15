@@ -19,6 +19,7 @@
 extern const char *baseUrl;
 extern bool eth_connected;
 extern String deviceRole;
+extern int heartbeatState;
 
 /**
  * Sends an HTTP POST request to update the stop status.
@@ -95,7 +96,7 @@ void postSingleStopStatus(int i, bool stopButtonPressed)
  *
  * @param stopButtonStates An array of the states of the stop buttons (false if pressed, true otherwise).
  */
-void postAllStopStatus(bool stopButtonStates[7])
+void postAllStopStatus(bool stopButtonStates[6], int startingChannel)
 {
     // Send the HTTP POST request
     if (eth_connected)
@@ -105,25 +106,12 @@ void postAllStopStatus(bool stopButtonStates[7])
         // Define payload
         StaticJsonDocument<200> payload;
         JsonArray array = payload.to<JsonArray>();
-
-        int offset = 0;
-        if (deviceRole == "RED_ALLIANCE")
-        {
-            offset = 0;
-        }
-        else if (deviceRole == "BLUE_ALLIANCE")
-        {
-            offset = 6;
-        }
-
-        JsonObject channel = array.createNestedObject();
-        channel["channel"] = 0;
-        channel["state"] = stopButtonStates[0];
-        for (int i = 1; i < 7; i++)
-        {
+       
+        for (int i = 0; i < 6; i++){
             JsonObject channel = array.createNestedObject();
-            channel["channel"] = i + offset;
+            channel["channel"] = i + startingChannel;
             channel["state"] = stopButtonStates[i];
+            Serial.println("Channel: " + String(i + startingChannel) + " State: " + String(stopButtonStates[i]));
         }
 
         // Convert payload to JSON string
@@ -147,11 +135,28 @@ void postAllStopStatus(bool stopButtonStates[7])
             String response = http.getString();
             Serial.println("Response:");
             Serial.println(response);
+
+            if (heartbeatState == 0)
+            {
+                heartbeatState = 1;
+            }
+            else
+            {
+                heartbeatState = 0;
+            }
         }
         else
         {
             Serial.println("postAllStopStatus");
             Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
+            if (heartbeatState == 0)
+            {
+                heartbeatState = 2;
+            }
+            else
+            {
+                heartbeatState = 0;
+            }
         }
 
         // Close the connection

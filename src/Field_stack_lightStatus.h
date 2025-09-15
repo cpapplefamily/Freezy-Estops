@@ -56,10 +56,11 @@ void setLEDColor(int ledIndex1, int length, bool status, CRGB color)
 
 const CRGB RED_COLOR = CRGB(255, 0, 0);
 const CRGB BLUE_COLOR = CRGB(0, 0, 255);
+const CRGB VIOLET_COLOR = CRGB(255, 0, 255);
 const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
 const CRGB GREEN_COLOR = CRGB(0, 255, 0);
 const CRGB WHITE_COLOR = CRGB(20, 20, 20);
-int heartbeatState = 0;
+extern int heartbeatState;
 long int hartBeatTck = 0;
 long int currentTime = 0;
 
@@ -107,7 +108,7 @@ void getField_stack_lightStatus()
                 setLEDColor(120, 60, orangeStackLightStatus, ORANGE_COLOR); // Orange
                 setLEDColor(180, 56, greenStackLightStatus, GREEN_COLOR);   // Green
             }
-            else if (deviceRole == "RED_ALLIANCE")
+            /* else if (deviceRole == "RED_ALLIANCE")
             {
                 setLEDColor(1, 1, true, RED_COLOR);  // RED
                 setLEDColor(2, 8, false, RED_COLOR); // RED
@@ -120,7 +121,7 @@ void getField_stack_lightStatus()
             else
             {
                 setLEDColor(1, 1, true, ORANGE_COLOR); // ORANGE
-            }
+            } */
 
             // Print the JSON data
             // serializeJsonPretty(doc, Serial);

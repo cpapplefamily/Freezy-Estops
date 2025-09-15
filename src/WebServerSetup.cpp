@@ -9,6 +9,8 @@ extern bool useDHCP;
 extern String deviceIP;
 extern String deviceGWIP;
 extern String arenaPort;
+extern bool stopButtonStates[6]; // Declare external array from Main.cpp
+extern bool startButtonState;   // Declare external start button state from Main.cpp
 
 void setupWebServer()
 {
@@ -26,13 +28,81 @@ void setupWebServer()
     // Set up the web server routes
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
               {
-        // Serve the initial page with a button to go to the settings page
+        // Serve the initial page with a button to go to the settings page and LED indicators
         String html = "<html><body>"
                       "<h1>Welcome to Freezy Estops</h1>"
-                      "<p>This is the initial page.</p>"
-                      "<button onclick=\"location.href='/setup'\">Go to Settings</button>"
-                      "</body></html>";
+                      "<p>Current Device Role: " + deviceRole + "</p>";
+        
+        // Add LED indicators based on deviceRole
+        if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
+            html += "<h2>Stop Button States</h2>"
+                    "<div id='buttonStates' style='display: flex; flex-wrap: wrap; gap: 20px;'>";
+            for (int i = 1; i <= 6; i++) {
+                html += "<div style='text-align: center;'>"
+                        "<div id='led" + String(i) + "' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
+                        "<p>Button " + String(i) + "</p>"
+                        "</div>";
+            }
+            html += "</div>"
+                    "<script>"
+                    "function updateLEDs() {"
+                    "  fetch('/buttonStates')"
+                    "    .then(response => response.json())"
+                    "    .then(data => {"
+                    "      for (let i = 1; i <= 6; i++) {"
+                    "        let led = document.getElementById('led' + i);"
+                    "        led.style.backgroundColor = data['button' + i] ? 'red' : 'gray';"
+                    "      }"
+                    "    });"
+                    "}"
+                    "setInterval(updateLEDs, 500);" // Update every 500ms
+                    "updateLEDs();" // Initial update
+                    "</script>";
+        }
+        else if (deviceRole == "FMS_TABLE") {
+            html += "<h2>Button States</h2>"
+                    "<div id='buttonStates' style='display: flex; flex-wrap: wrap; gap: 20px;'>"
+                    "<div style='text-align: center;'>"
+                    "<div id='ledStop' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
+                    "<p>FMS Stop Button</p>"
+                    "</div>"
+                    "<div style='text-align: center;'>"
+                    "<div id='ledStart' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
+                    "<p>FMS Start Button</p>"
+                    "</div>"
+                    "</div>"
+                    "<script>"
+                    "function updateLEDs() {"
+                    "  fetch('/buttonStates')"
+                    "    .then(response => response.json())"
+                    "    .then(data => {"
+                    "        let ledStop = document.getElementById('ledStop');"
+                    "        let ledStart = document.getElementById('ledStart');"
+                    "        ledStop.style.backgroundColor = data['button1'] ? 'red' : 'gray';"
+                    "        ledStart.style.backgroundColor = data['startButton'] ? 'green' : 'gray';"
+                    "    });"
+                    "}"
+                    "setInterval(updateLEDs, 500);" // Update every 500ms
+                    "updateLEDs();" // Initial update
+                    "</script>";
+        }
+
+        html += "<button onclick=\"location.href='/setup'\">Go to Settings</button>"
+                "</body></html>";
         request->send(200, "text/html", html); });
+
+    // Route to provide button states as JSON from stopButtonStates and startButtonState
+    server.on("/buttonStates", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+        String json = "{";
+        for (int i = 0; i < 6; i++) {
+            json += "\"button" + String(i + 1) + "\":" + String(stopButtonStates[i]);
+            if (i < 5) json += ",";
+        }
+        json += ",\"startButton\":" + String(startButtonState);
+        json += "}";
+        request->send(200, "application/json", json);
+    });
 
     server.on("/setup", HTTP_GET, [](AsyncWebServerRequest *request)
               {
@@ -45,6 +115,8 @@ void setupWebServer()
                       "<option value=\"RED_ALLIANCE\"" + String(deviceRole == "RED_ALLIANCE" ? " selected" : "") + ">RED_ALLIANCE</option>"
                       "<option value=\"BLUE_ALLIANCE\"" + String(deviceRole == "BLUE_ALLIANCE" ? " selected" : "") + ">BLUE_ALLIANCE</option>"
                       "<option value=\"FMS_TABLE\"" + String(deviceRole == "FMS_TABLE" ? " selected" : "") + ">FMS_TABLE</option>"
+                      "<option value=\"BARGE_LIGHTS\"" + String(deviceRole == "BARGE_LIGHTS" ? " selected" : "") + ">BARGE_LIGHTS</option>"
+                      
                       "</select><br><br>"
                       "<input type=\"checkbox\" id=\"dhcp\" name=\"dhcp\" " + String(useDHCP ? "checked" : "") + " onchange=\"toggleIPInput()\">"
                       "<label for=\"dhcp\">Use DHCP</label><br><br>"
