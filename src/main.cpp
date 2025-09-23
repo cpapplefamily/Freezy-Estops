@@ -22,6 +22,18 @@
 #include "WebServerSetup.h"          // Include the WebServerSetup header
 #include "GlobalSettings.h"          // Include the GlobalSettings header
 #include <WebSocketsClient.h>
+#include "SonarSensor.h"
+
+// Use TRIG and ECHO pins configured here. Change to match your wiring.
+const uint8_t TRIG_PIN = 21;
+const uint8_t ECHO_PIN = 17;
+const unsigned long PULSE_TIMEOUT = 30000UL; // 30 ms -> ~5 meters
+
+SonarSensor sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);
+
+// Example configuration
+const float ALERT_THRESHOLD_CM = 30.0f;     // trigger when object closer than 30 cm
+const unsigned long ALERT_HOLD_MS = 1000UL; // must stay below threshold for 1 second
 
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE ETH_PHY_W5500
@@ -39,7 +51,7 @@
 
 // Define the base URL for the API
 //const char *baseUrl = "http://192.168.10.124:8080";
-const char* baseUrl = "http://10.0.100.5:8080";
+const char* baseUrl = "http://192.168.10.124:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceRole;
@@ -332,6 +344,10 @@ void setup()
   deviceGWIP = preferences.getString("deviceGWIP", "10.0.100.3");
   useDHCP = preferences.getBool("useDHCP", true);
 
+  sonar.begin();
+  // start background sampling (non-blocking for the main loop)
+  sonar.startBackground(200);
+
 #ifdef ESP32DEV
   // Connect to the WiFi network
   intiWifi();
@@ -341,7 +357,7 @@ void setup()
 #ifdef ESP32_S3_DEVKITM_1
   Network.onEvent(onEvent);
   // Initialize Ethernet with DHCP or Static IP
-  if (useDHCP)
+  if (true)
   {
     ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
   }
@@ -367,7 +383,8 @@ void setup()
   // Wait for Ethernet to connect
   while (!eth_connected)
   {
-    delay(100);
+    Serial.print(".");
+    delay(500);
   }
   // Print the IP address
   Serial.print("init - IP Address: ");
@@ -380,8 +397,8 @@ void setup()
 
   // Connect to the WebSocket server
   Serial.println("Connecting to WebSocket server...");
-  webSocket.setExtraHeaders("Origin: http://10.0.100.5:8080");
-  webSocket.begin("10.0.100.5", 8080, "ws://10.0.100.5:8080/setup/field_testing/websocket");
+  webSocket.setExtraHeaders("Origin: http://192.168.10.124:8080");
+  webSocket.begin("192.168.10.124", 8080, "ws://192.168.10.124:8080/setup/field_testing/websocket");
 
   // event handler
 	webSocket.onEvent(webSocketEvent);
@@ -418,7 +435,26 @@ void loop()
     }
     
     // Call the postAllStopStatus method with the array
-    postAllStopStatus(stopButtonStates,1);
+    //postAllStopStatus(stopButtonStates,1);
+
+    float d = sonar.getLastDistance();
+    String msg;
+    if (d < 0)
+      msg = "{\"distance\":null}";
+    else
+    {
+      msg = "{\"distance\":" + String(d, 2) + "}";
+    }
+    Serial.print("Broadcast: ");
+    Serial.println(msg);
+
+    // Example: also use belowThresholdFor (non-blocking since background samples run separately)
+    if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
+    {
+      Serial.println("ALERT: object within threshold for >=1s");
+      webSocket.sendTXT("ALERT: object within threshold for >=1s");
+    }
+
   }
   else if (deviceRole == "BLUE_ALLIANCE")
   {
