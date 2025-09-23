@@ -18,6 +18,7 @@
 #include <FastLED.h>
 #include "StartMatch.h"              // Include the StartMatch header
 #include "postStopStatus.h"          // Include the postStopStatus header
+#include "postElementIncrement.h"    // Include the postElementIncrement header
 #include "Field_stack_lightStatus.h" // Include the Field_stack_lightStatus header
 #include "WebServerSetup.h"          // Include the WebServerSetup header
 #include "GlobalSettings.h"          // Include the GlobalSettings header
@@ -437,14 +438,15 @@ void loop()
     // Call the postAllStopStatus method with the array
     //postAllStopStatus(stopButtonStates,1);
 
-    float d = sonar.getLastDistance();
+    float sensorValue = sonar.getLastDistance();
     String msg;
-    if (d < 0)
+    if (sensorValue < 0)
       msg = "{\"distance\":null}";
     else
     {
-      msg = "{\"distance\":" + String(d, 2) + "}";
+      msg = "{\"distance\":" + String(sensorValue, 2) + "}";
     }
+    Serial.println(LT_MatchState);
     Serial.print("Broadcast: ");
     Serial.println(msg);
 
@@ -452,7 +454,21 @@ void loop()
     if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
     {
       Serial.println("ALERT: object within threshold for >=1s");
-      webSocket.sendTXT("ALERT: object within threshold for >=1s");
+      switch(LT_MatchState){
+      case 0: //Pre Match
+        //Do Nothing
+        break;        
+      case 1 ... 6: //start Matct
+        postElement("red","ProcessorAlgae");
+        break;
+      case 7: //TimeoutActive
+        //Do Nothing
+        break;        
+      case 8: //PostTimeout
+        //Do Nothing
+        break;        
+      default:
+        //Do Nothing        
     }
 
   }
