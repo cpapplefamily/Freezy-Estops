@@ -412,6 +412,7 @@ void setup()
 bool stopButtonStates[NUM_BUTTONS-1];
 bool startButtonState = false;
 int looptime = 100;
+bool sonarAlertSent = false; // one-shot flag for sonar alert
 
 // Main loop
 void loop()
@@ -439,38 +440,40 @@ void loop()
     //postAllStopStatus(stopButtonStates,1);
 
     float d = sonar.getLastDistance();
-    String msg;
-    if (d < 0)
-      msg = "{\"distance\":null}";
-    else
-    {
-      msg = "{\"distance\":" + String(d, 2) + "}";
-    }
-    Serial.println(LT_MatchState);
-    Serial.print("Broadcast: ");
-    Serial.println(msg);
 
     // Example: also use belowThresholdFor (non-blocking since background samples run separately)
     if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
     {
-      Serial.println("ALERT: object within threshold for >=1s");
-      switch (LT_MatchState)
+      // only fire once per event
+      if (!sonarAlertSent)
       {
-      case 0: //Pre Match
-        //do nothing
-        break;
-      case 1 ... 6:
-        postElement("red","ProcessorAlgae");
-        break;
-      case 7: //TimeoutActive
-        //do nothing
-        break;
-      case 8: //PostTimeout
-        //do nothing
-        break;
-      default:
-        break;
+        Serial.println("ALERT: object within threshold for >=1s (one-shot)");
+        sonarAlertSent = true; // prevent repeat until cleared
+
+        switch (LT_MatchState)
+        {
+        case 0: //Pre Match
+          //do nothing
+          break;
+        case 1 ... 6:
+          postElement("red","ProcessorAlgae");
+          break;
+        case 7: //TimeoutActive
+          //do nothing
+          break;
+        case 8: //PostTimeout
+          //do nothing
+          break;
+        default:
+          break;
+        }
       }
+    }
+    else
+    {
+      // reset one-shot when sensor clears (simple reset). If you want a hold before reset,
+      // replace this with a timed/hysteresis check.
+      sonarAlertSent = false;
     }
 
   }
@@ -485,6 +488,43 @@ void loop()
     
     // Call the postAllStopStatus method with the array
     postAllStopStatus(stopButtonStates,7);
+
+    float d = sonar.getLastDistance();
+
+    // Example: also use belowThresholdFor (non-blocking since background samples run separately)
+    if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
+    {
+      // only fire once per event
+      if (!sonarAlertSent)
+      {
+        Serial.println("ALERT: object within threshold for >=1s (one-shot)");
+        sonarAlertSent = true; // prevent repeat until cleared
+
+        switch (LT_MatchState)
+        {
+        case 0: //Pre Match
+          //do nothing
+          break;
+        case 1 ... 6:
+          postElement("red","ProcessorAlgae");
+          break;
+        case 7: //TimeoutActive
+          //do nothing
+          break;
+        case 8: //PostTimeout
+          //do nothing
+          break;
+        default:
+          break;
+        }
+      }
+    }
+    else
+    {
+      // reset one-shot when sensor clears (simple reset). If you want a hold before reset,
+      // replace this with a timed/hysteresis check.
+      sonarAlertSent = false;
+    }
   }
   else if (deviceRole == "FMS_TABLE")
   {
