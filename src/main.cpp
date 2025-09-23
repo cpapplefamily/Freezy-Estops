@@ -438,13 +438,13 @@ void loop()
     // Call the postAllStopStatus method with the array
     //postAllStopStatus(stopButtonStates,1);
 
-    float sensorValue = sonar.getLastDistance();
+    float d = sonar.getLastDistance();
     String msg;
-    if (sensorValue < 0)
+    if (d < 0)
       msg = "{\"distance\":null}";
     else
     {
-      msg = "{\"distance\":" + String(sensorValue, 2) + "}";
+      msg = "{\"distance\":" + String(d, 2) + "}";
     }
     Serial.println(LT_MatchState);
     Serial.print("Broadcast: ");
@@ -454,21 +454,23 @@ void loop()
     if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
     {
       Serial.println("ALERT: object within threshold for >=1s");
-      switch(LT_MatchState){
+      switch (LT_MatchState)
+      {
       case 0: //Pre Match
-        //Do Nothing
-        break;        
-      case 1 ... 6: //start Matct
+        //do nothing
+        break;
+      case 1 ... 6:
         postElement("red","ProcessorAlgae");
         break;
       case 7: //TimeoutActive
-        //Do Nothing
-        break;        
+        //do nothing
+        break;
       case 8: //PostTimeout
-        //Do Nothing
-        break;        
+        //do nothing
+        break;
       default:
-        //Do Nothing        
+        break;
+      }
     }
 
   }
