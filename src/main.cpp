@@ -52,8 +52,7 @@ unsigned long minOffMs = 1000UL;    // once triggered, require 10 seconds of cle
 #define USE_SERIAL Serial
 
 // Define the base URL for the API
-// const char *baseUrl = "http://192.168.10.124:8080";
-const char *baseUrl = "http://192.168.10.124:8080";
+const char *baseUrl = "http://10.0.100.5:8080";
 
 // Define the IP address and DHCP/Static configuration
 extern String deviceRole;
@@ -378,7 +377,7 @@ void setup()
 #ifdef ESP32_S3_DEVKITM_1
   Network.onEvent(onEvent);
   // Initialize Ethernet with DHCP or Static IP
-  if (true)
+  if (useDHCP)
   {
     ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
   }
@@ -418,8 +417,8 @@ void setup()
 
   // Connect to the WebSocket server
   Serial.println("Connecting to WebSocket server...");
-  webSocket.setExtraHeaders("Origin: http://192.168.10.124:8080");
-  webSocket.begin("192.168.10.124", 8080, "ws://192.168.10.124:8080/setup/field_testing/websocket");
+  webSocket.setExtraHeaders("Origin: http://10.0.100.5:8080");
+  webSocket.begin("10.0.100.5", 8080, "ws://10.0.100.5:8080/setup/field_testing/websocket");
 
   // event handler
   webSocket.onEvent(webSocketEvent);
@@ -631,7 +630,7 @@ void loop()
     Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
     deviceGWIP = preferences.getString("deviceGWIP", "");
     Serial.printf("Preferences Gateway IP Address: %s\n", deviceGWIP.c_str());
-    useDHCP = preferences.getBool("useDHCP", true);
+    useDHCP = preferences.getBool("useDHCP");
     Serial.printf("Preferences useDHCP: %s\n", useDHCP ? "true" : "false");
     //Serial.printf("alertTrigCm: %s\n", String(alertTrigCm).c_str());
 

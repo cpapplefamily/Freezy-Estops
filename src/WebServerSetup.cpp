@@ -29,7 +29,7 @@ void setupWebServer()
     alertTrigCm = preferences.getULong("alertTrigCm", 30); // Default: 30 cm
     alertHoldMs = preferences.getULong("alertHoldMs", 1000); // Default: 1000 ms
     minOffMs = preferences.getULong("minOffMs", 500); // Default: 500 ms
-    preferences.end(); // Close preferences to ensure data is saved
+    //preferences.end(); // Close preferences to ensure data is saved
 
     // Set up the web server routes
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -180,7 +180,7 @@ void setupWebServer()
     server.on("/setConfig", HTTP_POST, [](AsyncWebServerRequest *request)
               {
         // Handle the form submission and update the configuration
-        preferences.begin("settings", false); // Reopen preferences for writing
+        //preferences.begin("settings", false); // Reopen preferences for writing
         if (request->hasParam("deviceRole", true)) {
             deviceRole = request->getParam("deviceRole", true)->value();
             preferences.putString("deviceRole", deviceRole);
@@ -215,7 +215,7 @@ void setupWebServer()
         }
         useDHCP = request->hasParam("dhcp", true);
         preferences.putBool("useDHCP", useDHCP);
-        preferences.end(); // Close preferences to ensure data is saved
+        //preferences.end(); // Close preferences to ensure data is saved
         
         // Serve the configuration updated page with a button to return home
         String html = "<html><body>"
