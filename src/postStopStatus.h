@@ -28,51 +28,6 @@ extern bool printSerialDebug;
 // Constants
 const char *STOP_STATUS_ENDPOINT = "/api/freezy/eStopState";
 
-// Helper Functions
-/**
- * Sends an HTTP POST request with the given JSON payload to the stop status endpoint.
- * @param jsonPayload The JSON string to send.
- * @param functionName The name of the calling function for debug output.
- * @return True if the request was successful (HTTP code > 0), false otherwise.
- */
-static bool sendHttpPost1(const String &jsonPayload, const String &functionName) {
-    if (!eth_connected) {
-        Serial.println("Network not connected! [" + functionName + "]");
-        return false;
-    }
-
-    HTTPClient http;
-    String url = String(baseUrl) + STOP_STATUS_ENDPOINT;
-    
-    if (printSerialDebug) {
-        Serial.println("URL: " + url);
-    }
-
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    int httpResponseCode = http.POST(jsonPayload);
-
-    if (httpResponseCode > 0) {
-        if (printSerialDebug) {
-            Serial.println(functionName);
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-        // Toggle heartbeat state on success
-        heartbeatState = (heartbeatState == 0) ? 1 : 0;
-    } else {
-        Serial.println(functionName);
-        Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-        // Set heartbeat state to error or reset
-        heartbeatState = (heartbeatState == 0) ? 2 : 0;
-    }
-
-    http.end();
-    return httpResponseCode > 0;
-}
-
 /**
  * Sends an HTTP POST request to update the stop status for a single channel.
  * @param i The channel index (adjusted based on deviceRole).
@@ -95,7 +50,7 @@ void postSingleStopStatus(int i, bool stopButtonPressed) {
 
     String jsonPayload;
     serializeJson(payload, jsonPayload);
-    sendHttpPost1(jsonPayload, "PostSingleStopStatus");
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "PostSingleStopStatus", true);
 }
 
 /**
@@ -116,7 +71,7 @@ void postAllStopStatus(bool stopButtonStates[6], int startingChannel) {
 
     String jsonPayload;
     serializeJson(payload, jsonPayload);
-    sendHttpPost1(jsonPayload, "postAllStopStatus");
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "postAllStopStatus", true);
 }
 
 #endif // POSTSTOPSTATUS_H

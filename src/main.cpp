@@ -47,37 +47,38 @@ int looptime = 100; // Loop delay in ms
 // Ethernet/WiFi configuration
 #ifdef ESP32_S3_DEVKITM_1
 const int stopButtonPins[NUM_BUTTONS] = {33, 1, 2, 3, 15, 18, 16}; // Field stop, 1E, 1A, 2E, 2A, 3E, 3A
-#define START_MATCH_BTN 34
-#define LEDSTRIP 47
-#define NUM_LED_STRIPS 5
-#define NUM_LEDS_PER_STRIP 5
-#define NUM_LEDS_PER_M 30
-#define NUM_LEDS (NUM_LED_STRIPS * NUM_LEDS_PER_STRIP * NUM_LEDS_PER_M)
-#define SECTION_LENGTH 124
-#define BLUE1_LED 0
-#define BLUE1_LED_LENGTH SECTION_LENGTH
-#define BLUE2_LED SECTION_LENGTH
-#define BLUE2_LED_LENGTH SECTION_LENGTH
-#define BLUE3_LED SECTION_LENGTH * 2
-#define BLUE3_LED_LENGTH SECTION_LENGTH
-#define RED1_LED SECTION_LENGTH * 5
-#define RED1_LED_LENGTH SECTION_LENGTH
-#define RED2_LED SECTION_LENGTH * 4
-#define RED2_LED_LENGTH SECTION_LENGTH
-#define RED3_LED SECTION_LENGTH * 3
-#define RED3_LED_LENGTH SECTION_LENGTH
-#define HEARTBEAT_LED NUM_LEDS - 1
-#define SOCKET_ACTIVITY_LED NUM_LEDS - 2
-#define RESERVED1 NUM_LEDS - 3
-#define RESERVED2 NUM_LEDS - 4
-#define RESERVED3 NUM_LEDS - 5
-#define RESERVED4 NUM_LEDS - 6
+#define START_MATCH_BTN_PIN     34
+#define LEDSTRIP_PIN            47
+#define NUM_LED_STRIPS          5
+#define NUM_LEDS_PER_STRIP      5
+#define NUM_LEDS_PER_M          30
+#define NUM_LEDS                (NUM_LED_STRIPS * NUM_LEDS_PER_STRIP * NUM_LEDS_PER_M)
+#define BARGE_SECTION_LENGTH    124
+#define BARGE_BLUE1_LED_START   7
+#define BARGE_BLUE1_LED_LENGTH  BARGE_SECTION_LENGTH
+#define BARGE_BLUE2_LED_START   BARGE_SECTION_LENGTH
+#define BARGE_BLUE2_LED_LENGTH  BARGE_SECTION_LENGTH
+#define BARGE_BLUE3_LED_START   BARGE_SECTION_LENGTH * 2
+#define BARGE_BLUE3_LED_LENGTH  BARGE_SECTION_LENGTH
+#define BARGE_RED1_LED_START    BARGE_SECTION_LENGTH * 5
+#define BARGE_RED1_LED_LENGTH   BARGE_SECTION_LENGTH
+#define BARGE_RED2_LED_START    BARGE_SECTION_LENGTH * 4
+#define BARGE_RED2_LED_LENGTH   BARGE_SECTION_LENGTH
+#define BARGE_RED3_LED_START    BARGE_SECTION_LENGTH * 3
+#define BARGE_RED3_LED_LENGTH   BARGE_SECTION_LENGTH
+#define HEARTBEAT_LED           0
+#define DEVICE_ROLE_LED         1
+#define SOCKET_ACTIVITY_LED     2
+#define RESERVED1               3
+#define RESERVED2               4
+#define RESERVED3               5
+#define RESERVED4               6
 int g_Brightness = 255;
 int g_PowerLimit = 50000;
 #else // ESP32DEV
 const int stopButtonPins[NUM_BUTTONS] = {21, 22, 23, 25, 26, 27, 32};
-#define START_MATCH_BTN 19
-#define LEDSTRIP 4
+#define START_MATCH_BTN_PIN 19
+#define LEDSTRIP_PIN 4
 #define ONBOARD_LED 2
 #endif
 
@@ -267,14 +268,14 @@ void handleStopButtons() {
 }
 
 // Handle Sonar Alerts
-void handleSonarAlerts() {
+void handleSonarAlerts(String alliance) {
     sonarDistance = sonar.getLastDistance();
     if (sonar.belowThresholdFor(alertTrigCm)) {
         if (!sonarAlertSent) {
             Serial.println("ALERT: object within threshold for >=1s (one-shot)");
             sonarAlertSent = true;
             if (LT_MatchState >= 1 && LT_MatchState <= 6) {
-                postElement("red", "ProcessorAlgae");
+                postElement(alliance, "ProcessorAlgae");
             }
         }
     } else {
@@ -299,17 +300,17 @@ void setup() {
     preferences.end();
 
     if (deviceRole != "BARGE_LIGHTS") {
-        g_Brightness = 15;
+        g_Brightness = 5;
         g_PowerLimit = 900;
     }
 
     // Initialize LED strip
-    FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS);
+    FastLED.addLeds<WS2812B, LEDSTRIP_PIN, GRB>(g_LEDs, NUM_LEDS);
     FastLED.setBrightness(g_Brightness);
     FastLED.setMaxPowerInMilliWatts(g_PowerLimit);
 
     // Initialize buttons
-    pinMode(START_MATCH_BTN, INPUT_PULLUP);
+    pinMode(START_MATCH_BTN_PIN, INPUT_PULLUP);
     for (int i = 0; i < NUM_BUTTONS; i++) {
         pinMode(stopButtonPins[i], INPUT);
     }
@@ -368,18 +369,18 @@ void loop() {
     webSocket.loop();
 
     if (deviceRole == "RED_ALLIANCE") {
-        setLED_Color(1, 1, true, RED_COLOR);
+        setLED_Color(DEVICE_ROLE_LED, 1, true, RED_COLOR);
         handleStopButtons();
-        postAllStopStatus(stopButtonStates, 1);
-        handleSonarAlerts();
+        //postAllStopStatus(stopButtonStates, 1);
+        handleSonarAlerts("red");
     } else if (deviceRole == "BLUE_ALLIANCE") {
-        setLED_Color(1, 1, true, BLUE_COLOR);
+        setLED_Color(DEVICE_ROLE_LED, 1, true, BLUE_COLOR);
         handleStopButtons();
         postAllStopStatus(stopButtonStates, 7);
-        handleSonarAlerts();
+        handleSonarAlerts("blue");
     } else if (deviceRole == "FMS_TABLE") {
-        setLED_Color(1, 1, true, VIOLET_COLOR);
-        startButtonState = !digitalRead(START_MATCH_BTN);
+        setLED_Color(DEVICE_ROLE_LED, 1, true, VIOLET_COLOR);
+        startButtonState = !digitalRead(START_MATCH_BTN_PIN);
         if (startButtonState) {
             Serial.println("Start match button pressed!");
             startMatchPost();
@@ -394,26 +395,26 @@ void loop() {
         looptime = 0;
         switch (LT_MatchState) {
             case 0: // Pre Match
-                setLED_Color(0, NUM_LEDS, coilValues[7], GREEN_COLOR);
+                setLED_Color(RESERVED4+1, NUM_LEDS, coilValues[7], GREEN_COLOR);
                 break;
             case 1 ... 5: // Match
-                setLED_Color(RED1_LED, RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-                setLED_Color(RED2_LED, RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-                setLED_Color(RED3_LED, RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-                setLED_Color(BLUE1_LED, BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-                setLED_Color(BLUE2_LED, BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-                setLED_Color(BLUE3_LED, BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+                setLED_Color(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+                setLED_Color(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+                setLED_Color(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+                setLED_Color(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+                setLED_Color(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+                setLED_Color(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
                 break;
             case 6: // Post Match
                 if (coilValues[7]) {
-                    setLED_Color(0, NUM_LEDS, true, GREEN_COLOR);
+                    setLED_Color(RESERVED4+1, NUM_LEDS, true, GREEN_COLOR);
                 } else {
-                    setLED_Color(RED1_LED, RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-                    setLED_Color(RED2_LED, RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-                    setLED_Color(RED3_LED, RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-                    setLED_Color(BLUE1_LED, BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-                    setLED_Color(BLUE2_LED, BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-                    setLED_Color(BLUE3_LED, BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+                    setLED_Color(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+                    setLED_Color(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+                    setLED_Color(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+                    setLED_Color(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+                    setLED_Color(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+                    setLED_Color(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
                 }
                 break;
             case 7: // TimeoutActive
@@ -440,7 +441,6 @@ void loop() {
         Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
 #endif
     }
-
     switch (heartbeatState) {
         case 0:
             g_LEDs[HEARTBEAT_LED] = CRGB::Black;
@@ -454,6 +454,12 @@ void loop() {
         default:
             g_LEDs[HEARTBEAT_LED] = CRGB::Red;
             break;
+    }
+    
+    if (socketDataActivity) {
+        g_LEDs[SOCKET_ACTIVITY_LED] = CRGB::Green;
+    } else {
+        g_LEDs[SOCKET_ACTIVITY_LED] = CRGB::Black;
     }
 
     FastLED.show(g_Brightness);

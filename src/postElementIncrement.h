@@ -28,49 +28,6 @@ extern bool printSerialDebug;
 // Constants
 const char *ELEMENT_INCREMENT_ENDPOINT = "/freezy/alternateio/increment";
 
-// Helper Functions
-/**
- * Sends an HTTP POST request with the given JSON payload to the specified endpoint.
- * @param jsonPayload The JSON string to send.
- * @param functionName The name of the calling function for debug output.
- * @return True if the request was successful (HTTP code > 0), false otherwise.
- */
-static bool sendHttpPost3(const String &jsonPayload, const String &functionName) {
-    if (!eth_connected) {
-        Serial.println("Network not connected! [" + functionName + "]");
-        return false;
-    }
-
-    HTTPClient http;
-    String url = String(baseUrl) + ELEMENT_INCREMENT_ENDPOINT;
-
-    // Configure HTTP request
-    if (printSerialDebug) {
-        Serial.println("URL: " + url);
-    }
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-
-    // Send the request
-    int httpResponseCode = http.POST(jsonPayload);
-
-    // Handle the response
-    if (httpResponseCode > 0) {
-        if (printSerialDebug) {Serial.println(functionName);
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-    } else {
-        Serial.println(functionName);
-        Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-    }
-
-    http.end();
-    return httpResponseCode > 0;
-}
-
 /**
  * Sends an HTTP POST request to increment an element count for the specified alliance.
  * @param alliance The alliance identifier (e.g., "red", "blue").
@@ -87,7 +44,7 @@ void postElement(String alliance, String element) {
     serializeJson(payload, jsonPayload);
 
     // Send the request
-    sendHttpPost3(jsonPayload, "postElement");
+    sendHttpPost(ELEMENT_INCREMENT_ENDPOINT, jsonPayload, "postElement", false);
 }
 
 #endif // POSTELEMENTINCREMENT_H

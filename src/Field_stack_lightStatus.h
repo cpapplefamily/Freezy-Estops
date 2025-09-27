@@ -51,57 +51,6 @@ const int ORANGE_LED_LENGTH = 60;
 const int GREEN_LED_INDEX = 180;
 const int GREEN_LED_LENGTH = 56;
 
-// Helper Functions
-/**
- * Sends an HTTP GET request to the specified endpoint and returns the JSON response.
- * @param functionName The name of the calling function for debug output.
- * @param doc The JSON document to store the parsed response.
- * @return True if the request was successful and JSON parsed correctly, false otherwise.
- */
-static bool sendHttpGet(const String &functionName, StaticJsonDocument<JSON_CAPACITY> &doc) {
-    if (!eth_connected) {
-        Serial.println("Network not connected! [FSL]");
-        heartbeatState = (heartbeatState == 0) ? 3 : 0;
-        return false;
-    }
-
-    HTTPClient http;
-    String url = "http://" + arenaIP + ":" + arenaPort + STACK_LIGHT_ENDPOINT;
-    if (printSerialDebug) {
-        Serial.println("URL: " + url);
-    }
-    http.begin(url);
-    int httpResponseCode = http.GET();
-
-    if (httpResponseCode > 0) {
-        String response = http.getString();
-        if (printSerialDebug) {
-            Serial.println(functionName);
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-
-        DeserializationError error = deserializeJson(doc, response);
-        if (error) {
-            Serial.print("deserializeJson() failed: ");
-            Serial.println(error.f_str());
-            http.end();
-            return false;
-        }
-        heartbeatState = (heartbeatState == 0) ? 1 : 0;
-    } else {
-        Serial.println(functionName);
-        Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
-        heartbeatState = (heartbeatState == 0) ? 2 : 0;
-        http.end();
-        return false;
-    }
-
-    http.end();
-    return true;
-}
-
 /**
  * Sets the color of a range of LEDs based on the status.
  * @param ledIndex The starting index of the LED range.
@@ -124,7 +73,7 @@ void getField_stack_lightStatus() {
     long int currentTime = millis();
 
     StaticJsonDocument<JSON_CAPACITY> doc;
-    if (!sendHttpGet("GetField_stack_lightStatus", doc)) {
+    if (!sendHttpGet(STACK_LIGHT_ENDPOINT, "GetField_stack_lightStatus", doc)) {
         return;
     }
 

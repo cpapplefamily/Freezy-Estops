@@ -26,47 +26,6 @@ extern bool printSerialDebug;
 // Constants
 const char *START_MATCH_ENDPOINT = "/api/freezy/startMatch";
 
-// Helper Functions
-/**
- * Sends an HTTP POST request with the given JSON payload to the specified endpoint.
- * @param jsonPayload The JSON string to send.
- * @param functionName The name of the calling function for debug output.
- * @return True if the request was successful (HTTP code > 0), false otherwise.
- */
-static bool sendHttpPostStartMatch(const String &jsonPayload, const String &functionName) {
-    if (!eth_connected) {
-        Serial.println("Network not connected! [" + functionName + "]");
-        return false;
-    }
-
-    HTTPClient http;
-    String url = String(baseUrl) + START_MATCH_ENDPOINT;
-
-    // Configure HTTP request
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-
-    // Send the request
-    int httpResponseCode = http.POST(jsonPayload);
-
-    // Handle the response
-    if (httpResponseCode > 0) {
-        if (printSerialDebug) {
-            Serial.println(functionName);
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-    } else {
-        Serial.println(functionName);
-        Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-    }
-
-    http.end();
-    return httpResponseCode > 0;
-}
-
 /**
  * Sends an HTTP POST request to start a match by sending {"match":"start"} to the API.
  */
@@ -78,8 +37,7 @@ void startMatchPost() {
     serializeJson(payload, jsonPayload);
 
     // Send the request
-    sendHttpPostStartMatch
-(jsonPayload, "StartMatch.h");
+    sendHttpPost(START_MATCH_ENDPOINT,jsonPayload, "StartMatch.h", false);
 }
 
 #endif // STARTMATCH_H
