@@ -19,4 +19,8 @@ bool useDHCP;
 String deviceIP;
 String deviceGWIP;
 
+// Shared Constants
+const size_t JSON_CAPACITY = 200;      // Capacity for StaticJsonDocument in HTTP requests
+
+
 #endif // GLOBALSETTINGS_H

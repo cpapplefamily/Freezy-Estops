@@ -9,71 +9,85 @@
 /_____//____/\__/\____/ .___/____/
                      /_/
 */
+
 #ifndef POSTELEMENTINCREMENT_H
 #define POSTELEMENTINCREMENT_H
 
+// Includes
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "GlobalSettings.h"
 
+// External Variables
 extern const char *baseUrl;
 extern bool eth_connected;
 extern String deviceRole;
 extern int heartbeatState;
+extern bool printSerialDebug;
 
+// Constants
+const char *ELEMENT_INCREMENT_ENDPOINT = "/freezy/alternateio/increment";
+
+// Helper Functions
 /**
- * Sends an HTTP POST request to update the stop status.
- *
- * @param alliance
- * @param element
+ * Sends an HTTP POST request with the given JSON payload to the specified endpoint.
+ * @param jsonPayload The JSON string to send.
+ * @param functionName The name of the calling function for debug output.
+ * @return True if the request was successful (HTTP code > 0), false otherwise.
  */
-void postElement(String alliance, String element)
-{
-    // Send the HTTP POST request
-    if (eth_connected)
-    {
-        HTTPClient http;
+static bool sendHttpPost3(const String &jsonPayload, const String &functionName) {
+    if (!eth_connected) {
+        Serial.println("Network not connected! [" + functionName + "]");
+        return false;
+    }
 
-        // Define payload
-        StaticJsonDocument<200> payload;
-        JsonObject channel = payload.to<JsonObject>();
-        channel["alliance"] = alliance;
-        channel["element"] = element;
+    HTTPClient http;
+    String url = String(baseUrl) + ELEMENT_INCREMENT_ENDPOINT;
 
-        String jsonPayload;
-        serializeJson(payload, jsonPayload);
+    // Configure HTTP request
+    if (printSerialDebug) {
+        Serial.println("URL: " + url);
+    }
+    http.begin(url);
+    http.addHeader("Content-Type", "application/json");
 
-        // Configure HTTP POST request
-        String url = String(baseUrl) + "/freezy/alternateio/increment";
-        Serial.println("URL: " + url); // Print the URL
-        http.begin(url);
-        http.addHeader("Content-Type", "application/json");
+    // Send the request
+    int httpResponseCode = http.POST(jsonPayload);
 
-        // Send the request
-        int httpResponseCode = http.POST(jsonPayload);
-
-        // Handle the response
-        if (httpResponseCode > 0)
-        {
-            Serial.println("postElement");
+    // Handle the response
+    if (httpResponseCode > 0) {
+        if (printSerialDebug) {Serial.println(functionName);
             Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
             String response = http.getString();
             Serial.println("Response:");
             Serial.println(response);
         }
-        else
-        {
-            Serial.println("postElement");
-            Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-        }
+    } else {
+        Serial.println(functionName);
+        Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
+    }
 
-        // Close the connection
-        http.end();
-    }
-    else
-    {
-        Serial.println("Network not connected![PSS]");
-    }
+    http.end();
+    return httpResponseCode > 0;
+}
+
+/**
+ * Sends an HTTP POST request to increment an element count for the specified alliance.
+ * @param alliance The alliance identifier (e.g., "red", "blue").
+ * @param element The element to increment (e.g., "ProcessorAlgae").
+ */
+void postElement(String alliance, String element) {
+    // Create JSON payload
+    StaticJsonDocument<JSON_CAPACITY> payload;
+    JsonObject channel = payload.to<JsonObject>();
+    channel["alliance"] = alliance;
+    channel["element"] = element;
+
+    String jsonPayload;
+    serializeJson(payload, jsonPayload);
+
+    // Send the request
+    sendHttpPost3(jsonPayload, "postElement");
 }
 
 #endif // POSTELEMENTINCREMENT_H
