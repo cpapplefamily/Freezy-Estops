@@ -6,24 +6,31 @@
 class SonarSensor
 {
 public:
+    // timeout for pulseIn (us)
     SonarSensor(uint8_t trigPin, uint8_t echoPin, unsigned long timeout = 30000UL);
+
     void begin();
-    // Returns distance in centimeters, or -1.0 on timeout/no-echo
-    float pingCM();
-    // Returns pulse duration in microseconds, or 0 on timeout
+
+    // blocking single ping (microseconds)
     unsigned long pingMicroseconds();
-    // Returns true when measured distance stays below `threshold_cm` continuously
-    // for at least `hold_ms` milliseconds. Should be called periodically (e.g., in loop()).
+
+    // blocking distance in cm (-1 on timeout)
+    float pingCM();
+
+    // non-blocking style helper:
+    // return true if distance <= threshold_cm for at least hold_ms milliseconds
+    // enforces a minimum-off window (minOffMs) between true events if configured
     bool belowThresholdFor(float threshold_cm, unsigned long hold_ms);
-    // Convenience overload: hold time defaults to 1000 ms (1 second)
+
+    // default hold_ms = 1000ms
     bool belowThresholdFor(float threshold_cm);
 
+    // set minimum off time (ms) required after a true event before a new true is allowed
+    void setMinOffTime(unsigned long minOffMs);
+
 #if defined(ESP32)
-    // Start background measurement task (non-blocking for main loop).
-    // intervalMs: measurement interval in milliseconds.
-    void startBackground(unsigned long intervalMs = 200);
+    void startBackground(unsigned long intervalMs);
     void stopBackground();
-    // Returns last measured distance (cm) from background task, or -1.0 if none.
     float getLastDistance();
 #endif
 
@@ -31,16 +38,24 @@ private:
     uint8_t _trigPin;
     uint8_t _echoPin;
     unsigned long _timeout;
-    // State for below-threshold detection
+
+    // tracking for hold detection
     bool _belowActive = false;
     unsigned long _belowStartMillis = 0;
+
+    // minimum off-time (refractory) after a triggered event
+    unsigned long _minOffMs = 0;
+    bool _inCooldown = false;
+    unsigned long _offStartMillis = 0;   // when sensor first reported cleared while in cooldown
+
 #if defined(ESP32)
-    // Background task state (ESP32 only)
+    // background task support
     volatile float _lastDistance = -1.0f;
     volatile bool _bgRunning = false;
+    unsigned long _bgIntervalMs = 100;
     TaskHandle_t _bgTaskHandle = NULL;
-    unsigned long _bgIntervalMs = 200;
     static void _bgTask(void *pvParameters);
+    unsigned long _bgIntervalMs_saved = 100;
 #endif
 };
 

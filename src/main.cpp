@@ -35,6 +35,7 @@ SonarSensor sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);
 // Example configuration
 const float ALERT_THRESHOLD_CM = 30.0f;     // trigger when object closer than 30 cm
 const unsigned long ALERT_HOLD_MS = 1000UL; // must stay below threshold for 1 second
+const unsigned long MIN_OFF_MS = 1000UL;   // once triggered, require 10 seconds of cleared before allowing retrigger
 
 #ifndef ETH_PHY_CS
 #define ETH_PHY_TYPE ETH_PHY_W5500
@@ -346,6 +347,7 @@ void setup()
   useDHCP = preferences.getBool("useDHCP", true);
 
   sonar.begin();
+  sonar.setMinOffTime(MIN_OFF_MS);
   // start background sampling (non-blocking for the main loop)
   sonar.startBackground(200);
 
@@ -413,6 +415,7 @@ bool stopButtonStates[NUM_BUTTONS-1];
 bool startButtonState = false;
 int looptime = 100;
 bool sonarAlertSent = false; // one-shot flag for sonar alert
+float sonarDistance;
 
 // Main loop
 void loop()
@@ -425,8 +428,8 @@ void loop()
   looptime = 100;
 
   webSocket.loop(); // Handle WebSocket events
-
- 
+  
+  
   if (deviceRole == "RED_ALLIANCE")
   {
     setLEDColor(1, 1, true, RED_COLOR);  // RED
@@ -438,9 +441,12 @@ void loop()
     
     // Call the postAllStopStatus method with the array
     //postAllStopStatus(stopButtonStates,1);
-
-    float d = sonar.getLastDistance();
-
+    
+    sonarDistance = sonar.getLastDistance();
+    
+/*     Serial.print("Sonar Distance: ");
+    Serial.print(d);
+    Serial.println(" cm"); */
     // Example: also use belowThresholdFor (non-blocking since background samples run separately)
     if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))
     {
@@ -449,22 +455,22 @@ void loop()
       {
         Serial.println("ALERT: object within threshold for >=1s (one-shot)");
         sonarAlertSent = true; // prevent repeat until cleared
-
+        
         switch (LT_MatchState)
         {
-        case 0: //Pre Match
+          case 0: //Pre Match
           //do nothing
           break;
-        case 1 ... 6:
+          case 1 ... 6:
           postElement("red","ProcessorAlgae");
           break;
-        case 7: //TimeoutActive
+          case 7: //TimeoutActive
           //do nothing
           break;
-        case 8: //PostTimeout
+          case 8: //PostTimeout
           //do nothing
           break;
-        default:
+          default:
           break;
         }
       }
@@ -475,7 +481,7 @@ void loop()
       // replace this with a timed/hysteresis check.
       sonarAlertSent = false;
     }
-
+    
   }
   else if (deviceRole == "BLUE_ALLIANCE")
   {
@@ -488,8 +494,8 @@ void loop()
     
     // Call the postAllStopStatus method with the array
     postAllStopStatus(stopButtonStates,7);
-
-    float d = sonar.getLastDistance();
+    
+    sonarDistance = sonar.getLastDistance();
 
     // Example: also use belowThresholdFor (non-blocking since background samples run separately)
     if (sonar.belowThresholdFor(ALERT_THRESHOLD_CM))

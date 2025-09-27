@@ -12,6 +12,7 @@ extern String arenaPort;
 extern bool stopButtonStates[6]; // Declare external array from Main.cpp
 extern bool startButtonState;   // Declare external start button state from Main.cpp
 
+
 void setupWebServer()
 {
     // Load the alliance DeviceRole from preferences

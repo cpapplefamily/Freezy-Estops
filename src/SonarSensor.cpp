@@ -36,42 +36,83 @@ float SonarSensor::pingCM()
     return distanceCm;
 }
 
+void SonarSensor::setMinOffTime(unsigned long minOffMs)
+{
+    _minOffMs = minOffMs;
+}
+
 bool SonarSensor::belowThresholdFor(float threshold_cm, unsigned long hold_ms)
 {
     float d = pingCM();
     unsigned long now = millis();
 
-    if (d < 0)
+    // treat timeout as "no object" (above threshold)
+    bool isBelow = (d >= 0) && (d <= threshold_cm);
+
+    // If in cooldown (we recently reported true) we must see a continuous "cleared" period
+    // of _minOffMs before allowing a new true.
+    if (_inCooldown)
     {
-        // treat timeout as not-below threshold; reset state
+        if (!isBelow)
+        {
+            // sensor reports cleared while in cooldown; start or continue off timer
+            if (_offStartMillis == 0)
+            {
+                _offStartMillis = now;
+            }
+            else if ((now - _offStartMillis) >= _minOffMs)
+            {
+                // cooled off sufficiently -> leave cooldown
+                _inCooldown = false;
+                _offStartMillis = 0;
+                // continue processing detection as normal after cooldown cleared
+            }
+        }
+        else
+        {
+            // object detected again while in cooldown -> reset off timer
+            _offStartMillis = 0;
+        }
+
+        // while still in cooldown do not report new true
+        if (_inCooldown)
+        {
+            // but keep internal belowActive state reset so hold timer starts fresh when allowed
+            _belowActive = false;
+            _belowStartMillis = 0;
+            return false;
+        }
+    }
+
+    // normal detection path when not in cooldown
+    if (!isBelow)
+    {
+        // above threshold: reset below tracking
         _belowActive = false;
         _belowStartMillis = 0;
         return false;
     }
 
-    if (d <= threshold_cm)
+    // isBelow == true
+    if (!_belowActive)
     {
-        if (!_belowActive)
-        {
-            _belowActive = true;
-            _belowStartMillis = now;
-            return false;
-        }
-        else
-        {
-            if ((now - _belowStartMillis) >= hold_ms)
-            {
-                // keep returning true once threshold has been held
-                return true;
-            }
-            return false;
-        }
+        _belowActive = true;
+        _belowStartMillis = now;
+        return false;
     }
     else
     {
-        // above threshold: reset
-        _belowActive = false;
-        _belowStartMillis = 0;
+        if ((now - _belowStartMillis) >= hold_ms)
+        {
+            // We have sustained below threshold long enough -> report true and enter cooldown if configured
+            if (_minOffMs > 0)
+            {
+                _inCooldown = true;
+                _offStartMillis = 0; // will be set when cleared
+            }
+            // keep belowActive true (optional) and return true
+            return true;
+        }
         return false;
     }
 }
