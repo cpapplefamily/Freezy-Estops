@@ -41,7 +41,7 @@ void SonarSensor::setMinOffTime(unsigned long minOffMs)
     _minOffMs = minOffMs;
 }
 
-bool SonarSensor::belowThresholdFor(float threshold_cm, unsigned long hold_ms)
+bool SonarSensor::belowThresholdFor(unsigned long threshold_cm, unsigned long hold_ms)
 {
     float d = pingCM();
     unsigned long now = millis();
@@ -117,7 +117,7 @@ bool SonarSensor::belowThresholdFor(float threshold_cm, unsigned long hold_ms)
     }
 }
 
-bool SonarSensor::belowThresholdFor(float threshold_cm)
+bool SonarSensor::belowThresholdFor(unsigned long threshold_cm)
 {
     return belowThresholdFor(threshold_cm, 1000UL);
 }

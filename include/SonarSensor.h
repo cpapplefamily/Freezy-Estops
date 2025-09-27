@@ -20,10 +20,10 @@ public:
     // non-blocking style helper:
     // return true if distance <= threshold_cm for at least hold_ms milliseconds
     // enforces a minimum-off window (minOffMs) between true events if configured
-    bool belowThresholdFor(float threshold_cm, unsigned long hold_ms);
+    bool belowThresholdFor(unsigned long threshold_cm, unsigned long hold_ms);
 
     // default hold_ms = 1000ms
-    bool belowThresholdFor(float threshold_cm);
+    bool belowThresholdFor(unsigned long threshold_cm);
 
     // set minimum off time (ms) required after a true event before a new true is allowed
     void setMinOffTime(unsigned long minOffMs);
