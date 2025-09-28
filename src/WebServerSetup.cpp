@@ -151,19 +151,23 @@ void setupWebServer()
                       "<label for=\"arenaPort\"> Port: </label>"
                       "<input type=\"text\" id=\"arenaPort\" name=\"arenaPort\" value=\"" + String(arenaPort) + "\"><br><br>"
                       "</fieldset>"
-
-                      "<br><br>"
-                      "<fieldset id=\"alertFields\">"
-                      "<legend>Alert Configuration</legend>"
+                      "<br><br>";
+        // Add sensor settings based on deviceRole             
+        if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
+           html +=    "<fieldset id=\"alertFields\">"
+                      "<legend>Sensor Configuration</legend>"
                       "<label for=\"alertTrigCm\">Alert Threshold (cm): </label>"
                       "<input type=\"number\" id=\"alertTrigCm\" name=\"alertTrigCm\" value=\"" + String(alertTrigCm) + "\"><br><br>"
                       "<label for=\"alertHoldMs\">Alert Hold Time (ms): </label>"
                       "<input type=\"number\" id=\"alertHoldMs\" name=\"alertHoldMs\" value=\"" + String(alertHoldMs) + "\"><br><br>"
                       "<label for=\"minOffMs\">Minimum Off Time (ms): </label>"
                       "<input type=\"number\" id=\"minOffMs\" name=\"minOffMs\" value=\"" + String(minOffMs) + "\"><br><br>"
-                      "</fieldset>"
+                      "</fieldset>";
+        } else {
+            
+        }
 
-                      "<br><br>"
+        html +=       "<br><br>"
                       "<input type=\"submit\" value=\"Submit\">"
                       "<button type=\"button\" onclick=\"location.href='/'\">Cancel</button>"
                       "</form>"

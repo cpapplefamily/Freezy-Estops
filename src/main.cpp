@@ -33,6 +33,8 @@ const unsigned long PULSE_TIMEOUT = 30000UL; // 30 ms -> ~5 meters
 unsigned long alertTrigCm = 30UL;   // trigger when object closer than 30 cm
 unsigned long alertHoldMs = 1000UL; // must stay below threshold for 1 second
 unsigned long minOffMs = 1000UL;    // once triggered, require 10 seconds of cleared before allowing retrigger
+unsigned long loopTimeThresholdMs = 200; // 200ms threshold for loop timing warning
+int loopWarning = 0; // Show warning for 2 blinks
 
 // Stop Button Configuration
 const uint8_t NUM_BUTTONS = 7;
@@ -157,7 +159,6 @@ static void hexdump(const void *mem, uint32_t len, uint8_t cols = 16) {
  * @param s The JSON string to parse.
  */
 static void parser(String s) {
-  socketDataActivity = !socketDataActivity;
   DynamicJsonDocument doc(6145);
   deserializeJson(doc, s);
   JsonObject json = doc.as<JsonObject>();
@@ -214,6 +215,7 @@ static void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
     break;
   case WStype_TEXT:
     USE_SERIAL.printf("[WSc] get text: %s\n", payload);
+    socketDataActivity = !socketDataActivity;
     socketData = (char *)payload;
     parser(socketData);
     break;
@@ -376,14 +378,18 @@ static unsigned long printNetworkInfo(unsigned long currentMillis, unsigned long
 static unsigned long updateHeartbeatLED(unsigned long currentMillis, unsigned long lastHeartBeat, unsigned long interval) {
     static bool heartbeatled_show = false;
     if (currentMillis - lastHeartBeat >= interval) {
-        heartbeatled_show = !heartbeatled_show;
-        if (heartbeatled_show) {
+      heartbeatled_show = !heartbeatled_show;
+        if (loopWarning > 0){
+          USE_SERIAL.println(loopWarning);
+          loopWarning = loopWarning - 1;
+        }
+      if (heartbeatled_show) {
             switch (heartbeatState) {
                 case 0:
                     g_LEDs[HEARTBEAT_LED] = CRGB::Black;
                     break;
                 case 1:
-                    g_LEDs[HEARTBEAT_LED] = CRGB::White;
+                    g_LEDs[HEARTBEAT_LED] = (loopWarning == 0) ? LTWHITE_COLOR : RED_COLOR;
                     break;
                 case 2:
                     g_LEDs[HEARTBEAT_LED] = CRGB::Orange;
@@ -467,10 +473,18 @@ void setup()
   }
 
   // Initialize sonar
-  sonar.begin();
-  sonar.setMinOffTime(minOffMs);
-  // start background sampling (non-blocking for the main loop)
-  sonar.startBackground(200);
+  /*
+  Need to test why sonar is causing issues on FMS_TABLE
+  1. If the sonar is initialized, the FMS_TABLE Estops and Start Match button do not work
+  */
+  if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
+    Serial.println("Initializing Sonar Sensor...");
+    sonar.begin();
+    sonar.setMinOffTime(minOffMs);
+    // start background sampling (non-blocking for the main loop)
+    sonar.startBackground(200); 
+  }
+
 
   // Initialize network
 #ifdef ESP32_S3_DEVKITM_1
@@ -498,9 +512,9 @@ void setup()
 
 
 // Main loop
-void loop()
-{
+void loop() {
   static unsigned long lastStatusCheck = 0;
+  unsigned long startTime = millis();
   static unsigned long lastPrint = 0;
   static unsigned long lastHeartbeat = 0;
   unsigned long currentMillis = millis();
@@ -530,7 +544,16 @@ void loop()
       startMatchPost();
     }
     stopButtonStates[0] = !digitalRead(stopButtonPins[0]);
+    if (!stopButtonStates[0]) {
+      Serial.println("Field stop button pressed!");
+    }
     postSingleStopStatus(0, stopButtonStates[0]);
+    // Check alliance status every 500ms
+    if (currentMillis - lastStatusCheck >= 500)
+    {
+      getField_stack_lightStatus();
+      lastStatusCheck = currentMillis;
+    }
   } else if (deviceRole == "BARGE_LIGHTS") {
     looptime = 0;
     switch (LT_MatchState) {
@@ -583,6 +606,21 @@ void loop()
   
   lastHeartbeat = updateHeartbeatLED(currentMillis, lastHeartbeat, 500);
 
+  if(socketDataActivity) {
+    setLED_Color(SOCKET_ACTIVITY_LED, 1, true, LTGREEN_COLOR); // Green for activity
+  } else {
+    setLED_Color(SOCKET_ACTIVITY_LED, 1, false, GREEN_COLOR); // Off for no activity
+  }
+
+  // Loop time warning
+  unsigned long loopTime = millis() - startTime;
+  if (loopTime > loopTimeThresholdMs) {
+    Serial.printf("WARNING: Loop time exceeded threshold! Loop time: %lu ms, Threshold: %lu ms\n", loopTime, loopTimeThresholdMs);
+    setLED_Color(HEARTBEAT_LED, 1, true, RED_COLOR); // Orange for warning
+    loopWarning = 20; // Show warning for 2 blinks
+  }
+
   FastLED.show(g_Brightness); //  Show and delay
   delay(looptime);
+
 }

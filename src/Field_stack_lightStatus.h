@@ -28,6 +28,19 @@ extern String arenaPort;
 
 extern CRGB g_LEDs[]; // Declare the LED array
 
+// LED Indices and Lengths for FMS_TABLE
+const int RED_LED_INDEX = 3;
+const int RED_LED_LENGTH = 60;
+const int BLUE_LED_INDEX = 60;
+const int BLUE_LED_LENGTH = 60;
+const int ORANGE_LED_INDEX = 120;
+const int ORANGE_LED_LENGTH = 60;
+const int GREEN_LED_INDEX = 180;
+const int GREEN_LED_LENGTH = 56;
+
+// Constants
+const char *STACK_LIGHT_ENDPOINT = "/api/freezy/field_stack_light";
+
 /**
  * @brief Sets the color of two LEDs based on the status.
  *
@@ -38,17 +51,12 @@ extern CRGB g_LEDs[]; // Declare the LED array
  */
 void setLEDColor(int ledIndex1, int length, bool status, CRGB color)
 {
-    if (status)
-    {
-        for (int i = ledIndex1; i < ledIndex1 + length; i++)
-        {
+    if (status) {
+        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
             g_LEDs[i] = color; // Set LED to color
         }
-    }
-    else
-    {
-        for (int i = ledIndex1; i < ledIndex1 + length; i++)
-        {
+    } else {
+        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
             g_LEDs[i] = CRGB::Black; // Turn off the LED
         }
     }
@@ -59,109 +67,28 @@ extern int heartbeatState;
 long int hartBeatTck = 0;
 long int currentTime = 0;
 
-void getField_stack_lightStatus()
-{
+void getField_stack_lightStatus() {
+    // Static variables for timing
+    static long int hartBeatTck = 0;
     long int currentTime = millis();
-    if (eth_connected)
-    {
-        // if(currentTime > hartBeatTck){  //Get the status every 500ms
-        // hartBeatTck = currentTime + 500;
 
-        HTTPClient http;
-        String url = "http://" + arenaIP + ":" + arenaPort + "/api/freezy/field_stack_light";
-        Serial.println("URL: " + url); // Print the URL
-        http.begin(url);
-        int httpResponseCode = http.GET();
-
-        if (httpResponseCode > 0)
-        {
-            Serial.println("GetField_stack_lightStatus");
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-
-            // Parse and print JSON data
-            StaticJsonDocument<200> doc;
-            DeserializationError error = deserializeJson(doc, response);
-            if (error)
-            {
-                Serial.print("deserializeJson() failed: ");
-                Serial.println(error.f_str());
-                return;
-            }
-
-            // Set the LED color based on the field_stack_light status
-            bool redStackLightStatus = doc.containsKey("redStackLight") ? doc["redStackLight"].as<bool>() : false;
-            bool blueStackLightStatus = doc.containsKey("blueStackLight") ? doc["blueStackLight"].as<bool>() : false;
-            bool orangeStackLightStatus = doc.containsKey("orangeStackLight") ? doc["orangeStackLight"].as<bool>() : false;
-            bool greenStackLightStatus = doc.containsKey("greenStackLight") ? doc["greenStackLight"].as<bool>() : false;
-            if (deviceRole == "FMS_TABLE")
-            {
-                setLEDColor(2, 60, redStackLightStatus, RED_COLOR);         // Red
-                setLEDColor(60, 60, blueStackLightStatus, BLUE_COLOR);      // Blue
-                setLEDColor(120, 60, orangeStackLightStatus, ORANGE_COLOR); // Orange
-                setLEDColor(180, 56, greenStackLightStatus, GREEN_COLOR);   // Green
-            }
-            /* else if (deviceRole == "RED_ALLIANCE")
-            {
-                setLEDColor(1, 1, true, RED_COLOR);  // RED
-                setLEDColor(2, 8, false, RED_COLOR); // RED
-            }
-            else if (deviceRole == "BLUE_ALLIANCE")
-            {
-                setLEDColor(1, 1, true, BLUE_COLOR);  // BLUE
-                setLEDColor(2, 8, false, BLUE_COLOR); // RED
-            }
-            else
-            {
-                setLEDColor(1, 1, true, ORANGE_COLOR); // ORANGE
-            } */
-
-            // Print the JSON data
-            // serializeJsonPretty(doc, Serial);
-            // heartbeat = !heartbeat; // Toggle heartbeat
-            // setLEDColor(1, 1, heartbeat, WHITE_COLOR); // White
-            if (heartbeatState == 0)
-            {
-                heartbeatState = 1;
-            }
-            else
-            {
-                heartbeatState = 0;
-            }
-        }
-        else
-        {
-            Serial.println("getField_stack_lightStatus");
-            Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
-            // heartbeat = !heartbeat; // Toggle heartbeat
-            // setLEDColor(1, 1, heartbeat, ORANGE_COLOR); // Orange
-            if (heartbeatState == 0)
-            {
-                heartbeatState = 2;
-            }
-            else
-            {
-                heartbeatState = 0;
-            }
-        }
-        http.end();
-        //} //Get the status every 500ms
+    StaticJsonDocument<JSON_CAPACITY> doc;
+    if (!sendHttpGet(STACK_LIGHT_ENDPOINT, "GetField_stack_lightStatus", doc)) {
+        return;
     }
-    else
-    {
-        Serial.println("Network not connected! [FSL]");
-        // heartbeat = !heartbeat; // Toggle heartbeat
-        // setLEDColor(1, 1, heartbeat, ORANGE_COLOR); // Red
-        if (heartbeatState == 0)
-        {
-            heartbeatState = 3;
-        }
-        else
-        {
-            heartbeatState = 0;
-        }
+
+    // Parse stack light statuses with default false if key is missing
+    bool redStackLightStatus = doc.containsKey("redStackLight") ? doc["redStackLight"].as<bool>() : false;
+    bool blueStackLightStatus = doc.containsKey("blueStackLight") ? doc["blueStackLight"].as<bool>() : false;
+    bool orangeStackLightStatus = doc.containsKey("orangeStackLight") ? doc["orangeStackLight"].as<bool>() : false;
+    bool greenStackLightStatus = doc.containsKey("greenStackLight") ? doc["greenStackLight"].as<bool>() : false;
+
+    // Update LEDs for FMS_TABLE role
+    if (deviceRole == "FMS_TABLE") {
+        setLEDColor(RED_LED_INDEX, RED_LED_LENGTH, redStackLightStatus, RED_COLOR);
+        setLEDColor(BLUE_LED_INDEX, BLUE_LED_LENGTH, blueStackLightStatus, BLUE_COLOR);
+        setLEDColor(ORANGE_LED_INDEX, ORANGE_LED_LENGTH, orangeStackLightStatus, ORANGE_COLOR);
+        setLEDColor(GREEN_LED_INDEX, GREEN_LED_LENGTH, greenStackLightStatus, GREEN_COLOR);
     }
 }
 

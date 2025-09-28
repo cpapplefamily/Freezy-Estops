@@ -21,11 +21,15 @@ String deviceGWIP;
 
 // LED Colors
 const CRGB RED_COLOR    = CRGB(255, 0, 0);
+const CRGB LTRED_COLOR    = CRGB(50, 0, 0);
 const CRGB BLUE_COLOR   = CRGB(0, 0, 255);
+const CRGB LTBLUE_COLOR   = CRGB(0, 0, 50);
 const CRGB VIOLET_COLOR = CRGB(255, 0, 255);
 const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
 const CRGB GREEN_COLOR  = CRGB(0, 255, 0);
-const CRGB WHITE_COLOR  = CRGB(20, 20, 20);
+const CRGB LTGREEN_COLOR  = CRGB(0, 50, 0);
+const CRGB WHITE_COLOR  = CRGB(255, 255, 255);
+const CRGB LTWHITE_COLOR  = CRGB(50, 50, 50);
 
 // Helper Functions
 /**
@@ -74,6 +78,59 @@ static bool sendHttpPost_Function(const String &endpoint, const String &jsonPayl
 
     http.end();
     return httpResponseCode > 0;
+}
+
+/**
+ * Sends an HTTP GET request to the specified endpoint and returns the JSON response.
+ * @param endpoint The API endpoint (e.g., "/api/freezy/field_stack_light").
+ * @param functionName The name of the calling function for debug output.
+ * @param doc The JSON document to store the parsed response.
+ * @return True if the request was successful and JSON parsed correctly, false otherwise.
+ */
+static bool sendHttpGet(const String &endpoint, const String &functionName, StaticJsonDocument<JSON_CAPACITY> &doc) {
+    if (!eth_connected) {
+        Serial.println("Network not connected! [FSL]");
+        heartbeatState = 3;
+        return false;
+    }
+
+    HTTPClient http;
+    String url = String(baseUrl) + endpoint;
+
+    if (printSerialDebug) {
+        Serial.println("URL: " + url);
+    }
+
+    http.begin(url);
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0) {
+        String response = http.getString();
+        if (printSerialDebug) {
+            Serial.println(functionName);
+            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
+            Serial.println("Response:");
+            Serial.println(response);
+        }
+
+        DeserializationError error = deserializeJson(doc, response);
+        if (error) {
+            Serial.print("deserializeJson() failed: ");
+            Serial.println(error.f_str());
+            http.end();
+            return false;
+        }
+        heartbeatState = 1;
+    } else {
+        Serial.println(functionName);
+        Serial.printf("GET request failed! Error code: %d\n", httpResponseCode);
+        heartbeatState = 2;
+        http.end();
+        return false;
+    }
+
+    http.end();
+    return true;
 }
 
 #endif // GLOBALSETTINGS_H
