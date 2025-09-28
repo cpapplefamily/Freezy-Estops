@@ -102,34 +102,34 @@ const int stopButtonPins[NUM_BUTTONS] = {33,  // Field stop
 #endif // ESP32_S3_DEVKITM_1
 
 // Global Variables
-extern String deviceRole;
-extern String deviceIP;
-extern String deviceGWIP;
-extern bool useDHCP;
-bool   eth_connected = false;                           // Network connection status
-int    heartbeatState = 0;                              // Heartbeat state for system status
-bool   printSerialDebug = false;                        // Debug logging flag
-bool   stopButtonStates[NUM_BUTTONS - 1];               // States for stop buttons (excluding field stop)
-bool   startButtonState = false;                        // State for start match button
-int    LT_MatchState = 0;                               // Match state from WebSocket
-int    looptime = 100;
+extern String       deviceRole;
+extern String       deviceIP;
+extern String       deviceGWIP;
+extern bool         useDHCP;
+bool                eth_connected = false;                     // Network connection status
+int                 heartbeatState = 0;                        // Heartbeat state for system status
+bool                printSerialDebug = false;                  // Debug logging flag
+bool                stopButtonStates[NUM_BUTTONS - 1];         // States for stop buttons (excluding field stop)
+bool                startButtonState = false;                  // State for start match button
+int                 LT_MatchState = 0;                         // Match state from WebSocket
+int                 looptime = 100;
 
-String arenaIP = "10.0.100.5";                          // Arena server IP
-String arenaPort = "8080";                              // Arena server port
-String socketData;
+String              arenaIP = "10.0.100.5";                     // Arena server IP
+String              arenaPort = "8080";                         // Arena server port
+String              socketData;
 
-CRGB   g_LEDs[NUM_LEDS] = {0};                          // LED frame buffer
-int    g_Brightness = 255;                              // LED brightness (0-255)
-int    g_PowerLimit = 50000;                            // Power limit in mW
+CRGB                g_LEDs[NUM_LEDS] = {0};                     // LED frame buffer
+int                 g_Brightness = 255;                         // LED brightness (0-255)
+int                 g_PowerLimit = 50000;                       // Power limit in mW
 
-SonarSensor sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);   // Sonar sensor
-bool        sonarAlertSent = false;                     // One-shot flag for sonar alerts
-float       sonarDistance;                              // Last sonar distance
+SonarSensor         sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);   // Sonar sensor
+bool                sonarAlertSent = false;                     // One-shot flag for sonar alerts
+float               sonarDistance;                              // Last sonar distance
 
 WebSocketsClient    webSocket;
-bool                socketDataActivity = false;         // WebSocket activity indicator
-JsonArray           coils;                              // JSON array for coils
-bool                coilValues[14];                     // Coil states from WebSocket
+bool                socketDataActivity = false;                 // WebSocket activity indicator
+JsonArray           coils;                                      // JSON array for coils
+bool                coilValues[14];                             // Coil states from WebSocket
 
 
 // Helper Functions
