@@ -9,28 +9,35 @@
 /_____//____/\__/\____/ .___/____/
                      /_/
 */
-#ifndef STARTMATCH_H
-#define STARTMATCH_H
+#ifndef POSTELEMENTINCREMENT_H
+#define POSTELEMENTINCREMENT_H
 
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "GlobalSettings.h"
 
 // Constants
-const char *START_MATCH_ENDPOINT = "/api/freezy/startMatch";
+const char *ELEMENT_INCREMENT_ENDPOINT = "/freezy/alternateio/increment";
 
-void startMatchPost()
+/**
+ * Sends an HTTP POST request to update the stop status.
+ *
+ * @param alliance
+ * @param element
+ */
+void postElement(String alliance, String element)
 {
     // Create JSON payload
     StaticJsonDocument<JSON_CAPACITY> payload;
     JsonObject channel = payload.to<JsonObject>();
-    channel["match"] = "start";
+    channel["alliance"] = alliance;
+    channel["element"] = element;
 
     String jsonPayload;
     serializeJson(payload, jsonPayload);
 
     // Send the request
-    sendHttpPost(START_MATCH_ENDPOINT, jsonPayload, "postElement", false);
+    sendHttpPost(ELEMENT_INCREMENT_ENDPOINT, jsonPayload, "postElement", false);
 }
 
-#endif // STARTMATCH_H
+#endif // POSTELEMENTINCREMENT_H

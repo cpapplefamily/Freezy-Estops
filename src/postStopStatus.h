@@ -12,14 +12,13 @@
 #ifndef POSTSTOPSTATUS_H
 #define POSTSTOPSTATUS_H
 
+// Includes
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "GlobalSettings.h"
 
-extern const char *baseUrl;
-extern bool eth_connected;
-extern String deviceRole;
-extern int heartbeatState;
+// Constants
+const char *STOP_STATUS_ENDPOINT = "/api/freezy/eStopState";
 
 /**
  * Sends an HTTP POST request to update the stop status.
@@ -29,66 +28,28 @@ extern int heartbeatState;
  */
 void postSingleStopStatus(int i, bool stopButtonPressed)
 {
-    // Send the HTTP POST request
-    if (eth_connected)
+    StaticJsonDocument<JSON_CAPACITY> payload;
+    JsonArray array = payload.to<JsonArray>();
+    JsonObject channel = array.createNestedObject();
+
+    // Map channel based on device role
+    if (deviceRole == "FMS_TABLE")
     {
-        HTTPClient http;
-
-        // Define payload
-        StaticJsonDocument<200> payload;
-        JsonArray array = payload.to<JsonArray>();
-
-        JsonObject channel = array.createNestedObject();
-        if (deviceRole == "FMS_TABLE")
-        {
-            channel["channel"] = 0; // Only Channel 0 is used for Field
-            channel["state"] = stopButtonPressed;
-        }
-        else if (deviceRole == "RED_ALLIANCE")
-        {
-            channel["channel"] = i;
-            channel["state"] = stopButtonPressed;
-        }
-        else if (deviceRole == "BLUE_ALLIANCE")
-        {
-            channel["channel"] = i + 6;
-            channel["state"] = stopButtonPressed;
-        }
-
-        String jsonPayload;
-        serializeJson(payload, jsonPayload);
-
-        // Configure HTTP POST request
-        String url = String(baseUrl) + "/api/freezy/eStopState";
-        Serial.println("URL: " + url); // Print the URL
-        http.begin(url);
-        http.addHeader("Content-Type", "application/json");
-
-        // Send the request
-        int httpResponseCode = http.POST(jsonPayload);
-
-        // Handle the response
-        if (httpResponseCode > 0)
-        {
-            Serial.println("PostSingleStopStatus");
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-        else
-        {
-            Serial.println("SingleStopStatus");
-            Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-        }
-
-        // Close the connection
-        http.end();
+        channel["channel"] = 0; // Field stop always uses channel 0
     }
-    else
+    else if (deviceRole == "RED_ALLIANCE")
     {
-        Serial.println("Network not connected![PSS]");
+        channel["channel"] = i;
     }
+    else if (deviceRole == "BLUE_ALLIANCE")
+    {
+        channel["channel"] = i + 6; // Offset by 6 for Blue Alliance
+    }
+    channel["state"] = stopButtonPressed;
+
+    String jsonPayload;
+    serializeJson(payload, jsonPayload);
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "PostSingleStopStatus", true);
 }
 
 /**
@@ -98,74 +59,20 @@ void postSingleStopStatus(int i, bool stopButtonPressed)
  */
 void postAllStopStatus(bool stopButtonStates[6], int startingChannel)
 {
-    // Send the HTTP POST request
-    if (eth_connected)
+    StaticJsonDocument<JSON_CAPACITY> payload;
+    JsonArray array = payload.to<JsonArray>();
+
+    // Create payload for all channels
+    for (int i = 0; i < 6; i++)
     {
-        HTTPClient http;
-
-        // Define payload
-        StaticJsonDocument<200> payload;
-        JsonArray array = payload.to<JsonArray>();
-       
-        for (int i = 0; i < 6; i++){
-            JsonObject channel = array.createNestedObject();
-            channel["channel"] = i + startingChannel;
-            channel["state"] = stopButtonStates[i];
-            Serial.println("Channel: " + String(i + startingChannel) + " State: " + String(stopButtonStates[i]));
-        }
-
-        // Convert payload to JSON string
-        String jsonString;
-        serializeJson(payload, jsonString);
-
-        // Configure HTTP POST request
-        String url = String(baseUrl) + "/api/freezy/eStopState";
-        Serial.println("URL: " + url); // Print the URL
-        http.begin(url);
-        http.addHeader("Content-Type", "application/json");
-
-        // Send the request
-        int httpResponseCode = http.POST(jsonString);
-
-        // Handle the response
-        if (httpResponseCode > 0)
-        {
-            Serial.println("postAllStopStatus");
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-
-            if (heartbeatState == 0)
-            {
-                heartbeatState = 1;
-            }
-            else
-            {
-                heartbeatState = 0;
-            }
-        }
-        else
-        {
-            Serial.println("postAllStopStatus");
-            Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-            if (heartbeatState == 0)
-            {
-                heartbeatState = 2;
-            }
-            else
-            {
-                heartbeatState = 0;
-            }
-        }
-
-        // Close the connection
-        http.end();
+        JsonObject channel = array.createNestedObject();
+        channel["channel"] = i + startingChannel;
+        channel["state"] = stopButtonStates[i];
     }
-    else
-    {
-        Serial.println("Network not connected![PSS]");
-    }
+
+    String jsonPayload;
+    serializeJson(payload, jsonPayload);
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "postAllStopStatus", true);
 }
 
 #endif // POSTSTOPSTATUS_H
