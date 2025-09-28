@@ -22,20 +22,6 @@ Freezy Estops is an application designed to manage emergency stop systems effici
   - ~~ONBOARD_LED~~ Board does not have this option
   - ONBOARD_RGB 21
 
-- **ESP32dev**
-    -[ESP32-S3-DevKitM-1 on Amazon](https://www.amazon.com/ESP-WROOM-32-Development-Microcontroller-Integrated-Compatible/dp/B08D5ZD528/ref=sr_1_3?crid=1BH3BAGLCLPR&dib=eyJ2IjoiMSJ9.XBINg-sjhfF_gUtnMiKGjhCiGW31sXyKLVbL01ZB_eTAv6nJuLtxLYF73ReJRPW1_2Dkc5tT8U7R4Mj3lUXideu8IC_M2NuE5i72-Z6dyDPiToma8un9pUOxEvTdo3YWM1TqHYk89fS2fph4NjHJJI6Vm9B4wR3vTx6njmpae68pk34QTGDdAitnvB8MC73P3nyoX88WTIa1-5LNC1yu3gy5VwFetQGBE68NKv_Amsg.FhBxCRGXHEoQ3rz-NuNdTxv0LFx1RpvhzgUoUu9mP8c&dib_tag=se&keywords=esp32&qid=1735571566&sprefix=esp32%2Caps%2C147&sr=8-3)
-  - This board is used for WiFi connectivity.
-  - Pins connected to the stop buttons: 
-    - 21  // Field stop
-    - 22  // 1E stop
-    - 23  // 1A stop
-    - 25  // 2E stop
-    - 26  // 2A stop
-    - 27  // 3E stop
-    - 32  // 3A stop
-  - Start match button pin: 33
-  - LED strip pin: 4
-  - ONBOARD_LED 2
 
 ## Features
 

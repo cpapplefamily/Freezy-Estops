@@ -54,12 +54,7 @@ void setLEDColor(int ledIndex1, int length, bool status, CRGB color)
     }
 }
 
-const CRGB RED_COLOR = CRGB(255, 0, 0);
-const CRGB BLUE_COLOR = CRGB(0, 0, 255);
-const CRGB VIOLET_COLOR = CRGB(255, 0, 255);
-const CRGB ORANGE_COLOR = CRGB(150, 100, 0);
-const CRGB GREEN_COLOR = CRGB(0, 255, 0);
-const CRGB WHITE_COLOR = CRGB(20, 20, 20);
+
 extern int heartbeatState;
 long int hartBeatTck = 0;
 long int currentTime = 0;
