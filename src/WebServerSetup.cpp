@@ -11,7 +11,7 @@ extern String deviceGWIP;
 extern String arenaPort;
 extern bool stopButtonStates[6]; // Declare external array from Main.cpp
 extern bool startButtonState;   // Declare external start button state from Main.cpp
-extern bool sonarAlertSent;   // Declare external sonarAlertSent state from Main.cpp
+extern bool sonarFlipFlop;   // Declare external sonarFlipFlop state from Main.cpp
 extern float sonarDistance;     // Declare external sonar distance from Main.cpp
 extern unsigned long alertTrigCm; // Declare external alert threshold from Main.cpp
 extern unsigned long alertHoldMs; // Declare external alert hold time from Main.cpp
@@ -44,9 +44,9 @@ void setupWebServer()
         if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
             html += "<p>Sonar Distance: <span id='sonarDistance'>0.00</span> cm</p>"
                     "<div style='text-align: center;'>"
-                    "<div id='ledsonarAlertSent' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
+                    "<div id='ledsonarFlipFlop' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
                     "</div>"
-                    "<p>sonarAlertSent</p>"
+                    "<p>sonar Flip Flop indicator flips on each positve trigger</p>"
                     "<h2>Stop Button States</h2>"
                     "<div id='buttonStates' style='display: flex; flex-wrap: wrap; gap: 20px;'>";
             for (int i = 1; i <= 6; i++) {
@@ -63,9 +63,9 @@ void setupWebServer()
                     "    .then(data => {"
                     "      for (let i = 1; i <= 6; i++) {"
                     "        let led = document.getElementById('led' + i);"
-                    "        let ledsonarAlertSent = document.getElementById('ledsonarAlertSent');"
+                    "        let ledsonarFlipFlop = document.getElementById('ledsonarFlipFlop');"
                     "        led.style.backgroundColor = data['button' + i] ? 'red' : 'gray';"
-                    "        ledsonarAlertSent.style.backgroundColor = data['sonarAlert'] ? 'green' : 'gray';"
+                    "        ledsonarFlipFlop.style.backgroundColor = data['sonarAlert'] ? 'green' : 'gray';"
                     "      }"
                     "      document.getElementById('sonarDistance').textContent = data['sonarDistance'].toFixed(2);"
                     "    });"
@@ -122,7 +122,7 @@ void setupWebServer()
         }
         json += ",\"startButton\":" + String(startButtonState);
         json += ",\"sonarDistance\":" + String(sonarDistance, 2); // Format to 2 decimal places
-        json += ",\"sonarAlert\":" + String(sonarAlertSent);
+        json += ",\"sonarAlert\":" + String(sonarFlipFlop);
         json += "}";
         request->send(200, "application/json", json);
     });

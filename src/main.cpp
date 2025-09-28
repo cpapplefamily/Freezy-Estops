@@ -122,6 +122,7 @@ int                 g_PowerLimit = 50000;                       // Power limit i
 
 SonarSensor         sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);   // Sonar sensor
 bool                sonarAlertSent = false;                     // One-shot flag for sonar alerts
+bool                sonarFlipFlop = false;                    // Memory flip-flop for sonar alert state
 float               sonarDistance;                              // Last sonar distance
 
 WebSocketsClient    webSocket;
@@ -399,6 +400,7 @@ static unsigned long updateHeartbeatLED(unsigned long currentMillis, unsigned lo
 static void handleSonarAlerts(const String &alliance) {
   sonarDistance = sonar.getLastDistance();
   if (sonar.belowThresholdFor(alertTrigCm)) {
+    sonarFlipFlop = !sonarFlipFlop;
     if (!sonarAlertSent) {
       if (printSerialDebug) {
         Serial.println("ALERT: object within threshold for >=1s (one-shot)");
