@@ -82,18 +82,18 @@ const int stopButtonPins[NUM_BUTTONS] = {33,  // Field stop
 #define NUM_LEDS_PER_M                  30
 #define NUM_LEDS                        (NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
 #define SECTION_LENGTH                  124
-#define BARGE_BLUE1_LED_START           0
-#define BARGE_BLUE1_LED_LENGTH          SECTION_LENGTH
-#define BARGE_BLUE2_LED_START           SECTION_LENGTH
-#define BARGE_BLUE2_LED_LENGTH          SECTION_LENGTH
-#define BARGE_BLUE3_LED_START           SECTION_LENGTH * 2
-#define BARGE_BLUE3_LED_LENGTH          SECTION_LENGTH
-#define BARGE_RED1_LED_START            SECTION_LENGTH * 5
+#define BARGE_RED1_LED_START            3
 #define BARGE_RED1_LED_LENGTH           SECTION_LENGTH
-#define BARGE_RED2_LED_START            SECTION_LENGTH * 4
+#define BARGE_RED2_LED_START            SECTION_LENGTH
 #define BARGE_RED2_LED_LENGTH           SECTION_LENGTH
-#define BARGE_RED3_LED_START            SECTION_LENGTH * 3
+#define BARGE_RED3_LED_START            SECTION_LENGTH * 2
 #define BARGE_RED3_LED_LENGTH           SECTION_LENGTH
+#define BARGE_BLUE3_LED_START           SECTION_LENGTH * 3
+#define BARGE_BLUE3_LED_LENGTH          SECTION_LENGTH
+#define BARGE_BLUE2_LED_START           SECTION_LENGTH * 4
+#define BARGE_BLUE2_LED_LENGTH          SECTION_LENGTH
+#define BARGE_BLUE1_LED_START           SECTION_LENGTH * 5
+#define BARGE_BLUE1_LED_LENGTH          SECTION_LENGTH
 #define HEARTBEAT_LED                   0
 #define DEVICE_ROLE_LED                 1
 #define SOCKET_ACTIVITY_LED             2
@@ -294,6 +294,9 @@ static void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
 
 
 void setLED_Color(int ledIndex1, int length, bool status, CRGB color) {
+  if (ledIndex1 + length > NUM_LEDS) {
+    length = NUM_LEDS - ledIndex1; // Adjust length to fit within bounds
+  }
   if (status) {
     for (int i = ledIndex1; i < ledIndex1 + length; i++) {
       g_LEDs[i] = color; // Set LED to color
@@ -356,10 +359,10 @@ static void readStopButtonStates(int startingIndex) {
  */
 static unsigned long printNetworkInfo(unsigned long currentMillis, unsigned long lastPrint, unsigned long interval) {
   if (currentMillis - lastPrint >= interval) {
-    deviceIP = preferences.getString("deviceIP", "");
-    deviceGWIP = preferences.getString("deviceGWIP", "");
-    useDHCP = preferences.getBool("useDHCP");
     if (printSerialDebug) {
+      deviceIP = preferences.getString("deviceIP", "");
+      deviceGWIP = preferences.getString("deviceGWIP", "");
+      useDHCP = preferences.getBool("useDHCP");
       Serial.printf("Preferences IP Address: %s\n", deviceIP.c_str());
       Serial.printf("Preferences Gateway IP Address: %s\n", deviceGWIP.c_str());
       Serial.printf("Preferences useDHCP: %s\n", useDHCP ? "true" : "false");
@@ -555,14 +558,16 @@ void loop() {
       lastStatusCheck = currentMillis;
     }
   } else if (deviceRole == "BARGE_LIGHTS") {
+    setLEDColor(DEVICE_ROLE_LED, 1, true, SPRINGGREEN_COLOR);
     looptime = 0;
+    heartbeatState = 1; // Heartbeat solid on
     switch (LT_MatchState) {
         case 0: // Pre Match
             // MatchStatePre();
             if (coilValues[7]) {
-                setLED_Color(0, NUM_LEDS, true, GREEN_COLOR);
+                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS , true, GREEN_COLOR);
             } else{
-                setLED_Color(0, NUM_LEDS, false, GREEN_COLOR);
+                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS , false, GREEN_COLOR);
             }
             break;
         case 1 ... 5: // start Matct
@@ -577,7 +582,7 @@ void loop() {
         case 6: // Post Match
             // MatchStatePost();
             if (coilValues[7]) {
-                setLED_Color(0, NUM_LEDS, true, GREEN_COLOR);
+                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS, true, GREEN_COLOR);
             } else {
                 setLED_Color(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
                 setLED_Color(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
