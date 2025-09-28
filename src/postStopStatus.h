@@ -17,13 +17,6 @@
 #include <ArduinoJson.h>
 #include "GlobalSettings.h"
 
-// External Variables
-extern const char *baseUrl;
-extern bool eth_connected;
-extern String deviceRole;
-extern int heartbeatState;
-extern boolean printSerialDebug;
-
 // Constants
 const char *STOP_STATUS_ENDPOINT = "/api/freezy/eStopState";
 
@@ -33,24 +26,30 @@ const char *STOP_STATUS_ENDPOINT = "/api/freezy/eStopState";
  * @param i The channel number.
  * @param stopButtonPressed The state of the stop button (false if pressed, true otherwise).
  */
-void postSingleStopStatus(int i, bool stopButtonPressed) {
+void postSingleStopStatus(int i, bool stopButtonPressed)
+{
     StaticJsonDocument<JSON_CAPACITY> payload;
     JsonArray array = payload.to<JsonArray>();
     JsonObject channel = array.createNestedObject();
 
     // Map channel based on device role
-    if (deviceRole == "FMS_TABLE") {
+    if (deviceRole == "FMS_TABLE")
+    {
         channel["channel"] = 0; // Field stop always uses channel 0
-    } else if (deviceRole == "RED_ALLIANCE") {
+    }
+    else if (deviceRole == "RED_ALLIANCE")
+    {
         channel["channel"] = i;
-    } else if (deviceRole == "BLUE_ALLIANCE") {
+    }
+    else if (deviceRole == "BLUE_ALLIANCE")
+    {
         channel["channel"] = i + 6; // Offset by 6 for Blue Alliance
     }
     channel["state"] = stopButtonPressed;
 
     String jsonPayload;
     serializeJson(payload, jsonPayload);
-    sendHttpPost_Function(STOP_STATUS_ENDPOINT, jsonPayload, "PostSingleStopStatus", true);
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "PostSingleStopStatus", true);
 }
 
 /**
@@ -58,12 +57,14 @@ void postSingleStopStatus(int i, bool stopButtonPressed) {
  *
  * @param stopButtonStates An array of the states of the stop buttons (false if pressed, true otherwise).
  */
-void postAllStopStatus(bool stopButtonStates[6], int startingChannel) {
+void postAllStopStatus(bool stopButtonStates[6], int startingChannel)
+{
     StaticJsonDocument<JSON_CAPACITY> payload;
     JsonArray array = payload.to<JsonArray>();
 
     // Create payload for all channels
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         JsonObject channel = array.createNestedObject();
         channel["channel"] = i + startingChannel;
         channel["state"] = stopButtonStates[i];
@@ -71,7 +72,7 @@ void postAllStopStatus(bool stopButtonStates[6], int startingChannel) {
 
     String jsonPayload;
     serializeJson(payload, jsonPayload);
-    sendHttpPost_Function(STOP_STATUS_ENDPOINT, jsonPayload, "postAllStopStatus", true);
+    sendHttpPost(STOP_STATUS_ENDPOINT, jsonPayload, "postAllStopStatus", true);
 }
 
 #endif // POSTSTOPSTATUS_H

@@ -18,16 +18,6 @@
 #include <FastLED.h>
 #include "GlobalSettings.h"
 
-// extern Adafruit_NeoPixel strip;
-
-extern const char *baseUrl;
-extern bool eth_connected;
-extern String deviceRole;
-extern String arenaIP;
-extern String arenaPort;
-
-extern CRGB g_LEDs[]; // Declare the LED array
-
 // LED Indices and Lengths for FMS_TABLE
 const int RED_LED_INDEX = 3;
 const int RED_LED_LENGTH = 60;
@@ -42,35 +32,10 @@ const int GREEN_LED_LENGTH = 56;
 const char *STACK_LIGHT_ENDPOINT = "/api/freezy/field_stack_light";
 
 /**
- * @brief Sets the color of two LEDs based on the status.
- *
- * @param ledIndex1 The index of the first LED.
- * @param ledIndex2 The index of the second LED.
- * @param status The status indicating whether to turn on or off the LEDs.
- * @param color The color to set the LEDs to if the status is true.
+ * Retrieves the field stack light status via HTTP GET and updates LEDs for FMS_TABLE role.
  */
-void setLEDColor(int ledIndex1, int length, bool status, CRGB color)
-{
-    if (status) {
-        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
-            g_LEDs[i] = color; // Set LED to color
-        }
-    } else {
-        for (int i = ledIndex1; i < ledIndex1 + length; i++) {
-            g_LEDs[i] = CRGB::Black; // Turn off the LED
-        }
-    }
-}
-
-
-extern int heartbeatState;
-long int hartBeatTck = 0;
-long int currentTime = 0;
-
 void getField_stack_lightStatus() {
-    // Static variables for timing
-    static long int hartBeatTck = 0;
-    long int currentTime = millis();
+
 
     StaticJsonDocument<JSON_CAPACITY> doc;
     if (!sendHttpGet(STACK_LIGHT_ENDPOINT, "GetField_stack_lightStatus", doc)) {

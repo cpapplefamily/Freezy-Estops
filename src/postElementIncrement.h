@@ -16,10 +16,8 @@
 #include <ArduinoJson.h>
 #include "GlobalSettings.h"
 
-extern const char *baseUrl;
-extern bool eth_connected;
-extern String deviceRole;
-extern int heartbeatState;
+// Constants
+const char *ELEMENT_INCREMENT_ENDPOINT = "/freezy/alternateio/increment";
 
 /**
  * Sends an HTTP POST request to update the stop status.
@@ -29,51 +27,17 @@ extern int heartbeatState;
  */
 void postElement(String alliance, String element)
 {
-    // Send the HTTP POST request
-    if (eth_connected)
-    {
-        HTTPClient http;
+    // Create JSON payload
+    StaticJsonDocument<JSON_CAPACITY> payload;
+    JsonObject channel = payload.to<JsonObject>();
+    channel["alliance"] = alliance;
+    channel["element"] = element;
 
-        // Define payload
-        StaticJsonDocument<200> payload;
-        JsonObject channel = payload.to<JsonObject>();
-        channel["alliance"] = alliance;
-        channel["element"] = element;
+    String jsonPayload;
+    serializeJson(payload, jsonPayload);
 
-        String jsonPayload;
-        serializeJson(payload, jsonPayload);
-
-        // Configure HTTP POST request
-        String url = String(baseUrl) + "/freezy/alternateio/increment";
-        Serial.println("URL: " + url); // Print the URL
-        http.begin(url);
-        http.addHeader("Content-Type", "application/json");
-
-        // Send the request
-        int httpResponseCode = http.POST(jsonPayload);
-
-        // Handle the response
-        if (httpResponseCode > 0)
-        {
-            Serial.println("postElement");
-            Serial.printf("Request successful! HTTP code: %d\n", httpResponseCode);
-            String response = http.getString();
-            Serial.println("Response:");
-            Serial.println(response);
-        }
-        else
-        {
-            Serial.println("postElement");
-            Serial.printf("Request failed! Error code: %d\n", httpResponseCode);
-        }
-
-        // Close the connection
-        http.end();
-    }
-    else
-    {
-        Serial.println("Network not connected![PSS]");
-    }
+    // Send the request
+    sendHttpPost(ELEMENT_INCREMENT_ENDPOINT, jsonPayload, "postElement", false);
 }
 
 #endif // POSTELEMENTINCREMENT_H

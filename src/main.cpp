@@ -77,10 +77,6 @@ const int stopButtonPins[NUM_BUTTONS] = {33,  // Field stop
 
 #define START_MATCH_BTN                 34
 #define LEDSTRIP                        47 // Pin connected to NeoPixel
-#define NUM_LED_SRIPS                   5
-#define NUM_LEDS_SRIPS_L                5
-#define NUM_LEDS_PER_M                  30
-#define NUM_LEDS                        (NUM_LED_SRIPS * NUM_LEDS_SRIPS_L * NUM_LEDS_PER_M)
 #define SECTION_LENGTH                  124
 #define BARGE_RED1_LED_START            3
 #define BARGE_RED1_LED_LENGTH           SECTION_LENGTH
@@ -292,21 +288,6 @@ static void onEvent(arduino_event_id_t event, arduino_event_info_t info) {
   }
 }
 
-
-void setLED_Color(int ledIndex1, int length, bool status, CRGB color) {
-  if (ledIndex1 + length > NUM_LEDS) {
-    length = NUM_LEDS - ledIndex1; // Adjust length to fit within bounds
-  }
-  if (status) {
-    for (int i = ledIndex1; i < ledIndex1 + length; i++) {
-      g_LEDs[i] = color; // Set LED to color
-    }
-  }else{
-    for (int i = ledIndex1; i < ledIndex1 + length; i++) {
-      g_LEDs[i] = CRGB::Black; // Turn off the LED
-    }
-  }
-}
 
 /**
  * Initializes Ethernet with DHCP or static IP.
@@ -565,40 +546,40 @@ void loop() {
         case 0: // Pre Match
             // MatchStatePre();
             if (coilValues[7]) {
-                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS , true, GREEN_COLOR);
+                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , true, GREEN_COLOR);
             } else{
-                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS , false, GREEN_COLOR);
+                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , false, GREEN_COLOR);
             }
             break;
         case 1 ... 5: // start Matct
             // MatchStateAuto();
-            setLED_Color(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-            setLED_Color(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-            setLED_Color(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-            setLED_Color(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-            setLED_Color(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-            setLED_Color(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+            setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+            setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+            setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+            setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+            setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+            setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
             break;
         case 6: // Post Match
             // MatchStatePost();
             if (coilValues[7]) {
-                setLED_Color(BARGE_RED1_LED_START, NUM_LEDS, true, GREEN_COLOR);
+                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS, true, GREEN_COLOR);
             } else {
-                setLED_Color(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-                setLED_Color(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-                setLED_Color(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-                setLED_Color(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-                setLED_Color(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-                setLED_Color(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+                setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+                setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+                setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+                setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+                setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+                setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
             }
             break;
         case 7: // TimeoutActive
             // MatchStateTimeout();
-            // setLED_Color(7, 1, true, BLUE_COLOR);
+            // setLEDColor(7, 1, true, BLUE_COLOR);
             break;
         case 8: // PostTimeout
             // MatchStatePostTimeout();
-            // setLED_Color(8, 1, true, BLUE_COLOR);
+            // setLEDColor(8, 1, true, BLUE_COLOR);
             break;
         default:
             // Do Nothing
@@ -612,16 +593,16 @@ void loop() {
   lastHeartbeat = updateHeartbeatLED(currentMillis, lastHeartbeat, 500);
 
   if(socketDataActivity) {
-    setLED_Color(SOCKET_ACTIVITY_LED, 1, true, LTGREEN_COLOR); // Green for activity
+    setLEDColor(SOCKET_ACTIVITY_LED, 1, true, LTGREEN_COLOR); // Green for activity
   } else {
-    setLED_Color(SOCKET_ACTIVITY_LED, 1, false, GREEN_COLOR); // Off for no activity
+    setLEDColor(SOCKET_ACTIVITY_LED, 1, false, GREEN_COLOR); // Off for no activity
   }
 
   // Loop time warning
   unsigned long loopTime = millis() - startTime;
   if (loopTime > loopTimeThresholdMs) {
     Serial.printf("WARNING: Loop time exceeded threshold! Loop time: %lu ms, Threshold: %lu ms\n", loopTime, loopTimeThresholdMs);
-    setLED_Color(HEARTBEAT_LED, 1, true, RED_COLOR); // Orange for warning
+    setLEDColor(HEARTBEAT_LED, 1, true, RED_COLOR); // Orange for warning
     loopWarning = 20; // Show warning for 2 blinks
   }
 
