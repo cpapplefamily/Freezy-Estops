@@ -163,8 +163,7 @@ static void parser(String s) {
 
   JsonObject data = doc["data"]; // Most Jason Files have a "data" section
 
-  if (strcmp(type, "plcIoChange") == 0)
-  {
+  if (strcmp(type, "plcIoChange") == 0) {
 
     // set the match state
     JsonArray registers = data["Registers"];
@@ -172,23 +171,25 @@ static void parser(String s) {
 
     // Print the Coils array
     coils = data["Coils"];
-    USE_SERIAL.print("Coils: ");
+    if (printSerialDebug) {
+      USE_SERIAL.print("Coils: ");
+    }
     int index = 0;
-    for (int i : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13})
-    {
-      if (i < coils.size())
-      {
+    for (int i : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}) {
+      if (i < coils.size()) {
         bool coilValue = coils[i].as<bool>();
         coilValues[index++] = coilValue; // Copy the value to the global arra
-        USE_SERIAL.print(coils[i].as<bool>());
-        USE_SERIAL.print(" ");
-      }
-      else
-      {
+        if (printSerialDebug) {
+          USE_SERIAL.print(coils[i].as<bool>());
+          USE_SERIAL.print(" ");
+        }
+      } else {
         USE_SERIAL.print("N/A ");
       }
     }
-    USE_SERIAL.println();
+    if (printSerialDebug) {
+      USE_SERIAL.println();
+    }
   }
 }
 
@@ -201,44 +202,43 @@ static void parser(String s) {
 static void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
   // USE_SERIAL.printf("type: %x\n", type);
 
-  switch (type)
-  {
-  case WStype_DISCONNECTED:
-    USE_SERIAL.printf("[WSc] Disconnected!\n");
-    break;
-  case WStype_CONNECTED:
-    USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
-    break;
-  case WStype_TEXT:
-    USE_SERIAL.printf("[WSc] get text: %s\n", payload);
-    socketDataActivity = !socketDataActivity;
-    socketData = (char *)payload;
-    parser(socketData);
-    break;
-  case WStype_BIN:
-    // USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
-    hexdump(payload, length);
-    break;
-  case WStype_ERROR:
-    USE_SERIAL.println("[************WSc ERROR***********]");
-  case WStype_FRAGMENT_TEXT_START:
-    socketData = (char *)payload;
-    // USE_SERIAL.printf("[WSc] Fragment Text Start: %s\n", payload);
-    // USE_SERIAL.println(socketData);
-    // USE_SERIAL.println("WStype_FRAGMENT_TEXT_START");
-    break;
-  case WStype_FRAGMENT_BIN_START:
-  case WStype_FRAGMENT:
-    socketData += (char *)payload;
-    break;
-  case WStype_FRAGMENT_FIN:
-    socketData += (char *)payload;
-    parser(socketData);
-    // USE_SERIAL.println(socketData);
-    break;
-  case WStype_PONG:
-    // USE_SERIAL.printf("[WSc] WStype_PONG: Ping reply\n");
-    break;
+  switch (type) {
+    case WStype_DISCONNECTED:
+      USE_SERIAL.printf("[WSc] Disconnected!\n");
+      break;
+    case WStype_CONNECTED:
+      USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
+      break;
+    case WStype_TEXT:
+      USE_SERIAL.printf("[WSc] get text: %s\n", payload);
+      socketDataActivity = !socketDataActivity;
+      socketData = (char *)payload;
+      parser(socketData);
+      break;
+    case WStype_BIN:
+      // USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
+      hexdump(payload, length);
+      break;
+    case WStype_ERROR:
+      USE_SERIAL.println("[************WSc ERROR***********]");
+    case WStype_FRAGMENT_TEXT_START:
+      socketData = (char *)payload;
+      // USE_SERIAL.printf("[WSc] Fragment Text Start: %s\n", payload);
+      // USE_SERIAL.println(socketData);
+      // USE_SERIAL.println("WStype_FRAGMENT_TEXT_START");
+      break;
+    case WStype_FRAGMENT_BIN_START:
+    case WStype_FRAGMENT:
+      socketData += (char *)payload;
+      break;
+    case WStype_FRAGMENT_FIN:
+      socketData += (char *)payload;
+      parser(socketData);
+      // USE_SERIAL.println(socketData);
+      break;
+    case WStype_PONG:
+      // USE_SERIAL.printf("[WSc] WStype_PONG: Ping reply\n");
+      break;
   }
 }
 
@@ -340,7 +340,7 @@ static void readStopButtonStates(int startingIndex) {
  */
 static unsigned long printNetworkInfo(unsigned long currentMillis, unsigned long lastPrint, unsigned long interval) {
   if (currentMillis - lastPrint >= interval) {
-    if (printSerialDebug) {
+    //if (printSerialDebug) {
       deviceIP = preferences.getString("deviceIP", "");
       deviceGWIP = preferences.getString("deviceGWIP", "");
       useDHCP = preferences.getBool("useDHCP");
@@ -350,7 +350,7 @@ static unsigned long printNetworkInfo(unsigned long currentMillis, unsigned long
 #ifdef ESP32_S3_DEVKITM_1
       Serial.printf("Current Wired IP Address: %s\n", ETH.localIP().toString().c_str());
 #endif
-    }
+    //}
     return currentMillis;
   }
   return lastPrint;
@@ -588,7 +588,9 @@ void loop() {
   }
 
   // print the IP address every 5 seconds
-  lastPrint = printNetworkInfo(currentMillis, lastPrint, 5000);
+  if (LT_MatchState == 0 ) {
+    lastPrint = printNetworkInfo(currentMillis, lastPrint, 30000);
+  }
   
   lastHeartbeat = updateHeartbeatLED(currentMillis, lastHeartbeat, 500);
 
