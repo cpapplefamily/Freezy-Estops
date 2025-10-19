@@ -7,7 +7,7 @@ class SonarSensor
 {
 public:
     // timeout for pulseIn (us)
-    SonarSensor(uint8_t trigPin, uint8_t echoPin, unsigned long timeout = 30000UL);
+    SonarSensor(uint8_t trigPin, uint8_t echoPin, unsigned long timeout = 7000);
 
     void begin();
 

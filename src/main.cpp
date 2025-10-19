@@ -11,8 +11,6 @@
 */
 #include <Arduino.h>
 #include <ETH.h>
-#include <WiFi.h>
-#include "WiFiCredentials.h" // Include the WiFi credentials
 #include <ArduinoJson.h>
 #define FASTLED_INTERNAL // Suppress build banner
 #include <FastLED.h>
@@ -29,9 +27,9 @@
 // Sonar Sensor Configuration
 const uint8_t TRIG_PIN = 21;
 const uint8_t ECHO_PIN = 17;
-const unsigned long PULSE_TIMEOUT = 30000UL; // 30 ms -> ~5 meters
+const unsigned long PULSE_TIMEOUT = 7000UL; // 30 ms -> ~5 meters
 unsigned long alertTrigCm = 30UL;   // trigger when object closer than 30 cm
-unsigned long alertHoldMs = 1000UL; // must stay below threshold for 1 second
+unsigned long alertHoldMs = 100UL; // must stay below threshold for  second
 unsigned long minOffMs = 1000UL;    // once triggered, require 10 seconds of cleared before allowing retrigger
 unsigned long loopTimeThresholdMs = 200; // 200ms threshold for loop timing warning
 int loopWarning = 0; // Show warning for 2 blinks
@@ -468,7 +466,7 @@ void setup()
     sonar.begin();
     sonar.setMinOffTime(minOffMs);
     // start background sampling (non-blocking for the main loop)
-    sonar.startBackground(200); 
+    sonar.startBackground(20); 
   }
 
 

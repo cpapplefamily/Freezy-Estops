@@ -1,7 +1,7 @@
 #include "SonarSensor.h"
 
 SonarSensor::SonarSensor(uint8_t trigPin, uint8_t echoPin, unsigned long timeout)
-    : _trigPin(trigPin), _echoPin(echoPin), _timeout(timeout) {}
+    : _trigPin(trigPin), _echoPin(echoPin), _timeout(timeout), _minOffMs(0), _bgRunning(false), _bgIntervalMs(20), _lastDistance(-1.0f), _bgTaskHandle(NULL), _inCooldown(false), _belowActive(false), _offStartMillis(0), _belowStartMillis(0) {}
 
 void SonarSensor::begin()
 {
@@ -22,8 +22,7 @@ unsigned long SonarSensor::pingMicroseconds()
     digitalWrite(_trigPin, LOW);
 
     // Read echo pulse width (microseconds)
-    unsigned long duration = pulseIn(_echoPin, HIGH, _timeout);
-    return duration; // 0 if timeout
+    return pulseIn(_echoPin, HIGH, _timeout); // 0 if timeout
 }
 
 float SonarSensor::pingCM()
@@ -31,9 +30,9 @@ float SonarSensor::pingCM()
     unsigned long duration = pingMicroseconds();
     if (duration == 0)
         return -1.0f;
+
     // speed of sound ~343 m/s -> 0.0343 cm/us; divide by 2 for round trip
-    float distanceCm = (duration * 0.0343f) / 2.0f;
-    return distanceCm;
+    return (duration * 0.0343f) / 2.0f; // cm
 }
 
 void SonarSensor::setMinOffTime(unsigned long minOffMs)
@@ -43,7 +42,7 @@ void SonarSensor::setMinOffTime(unsigned long minOffMs)
 
 bool SonarSensor::belowThresholdFor(unsigned long threshold_cm, unsigned long hold_ms)
 {
-    float d = pingCM();
+    float d = getLastDistance(); // Use background distance for consistency
     unsigned long now = millis();
 
     // treat timeout as "no object" (above threshold)
@@ -119,7 +118,7 @@ bool SonarSensor::belowThresholdFor(unsigned long threshold_cm, unsigned long ho
 
 bool SonarSensor::belowThresholdFor(unsigned long threshold_cm)
 {
-    return belowThresholdFor(threshold_cm, 1000UL);
+    return belowThresholdFor(threshold_cm, 40UL); // Align with ~2 pings at 20ms
 }
 
 #if defined(ESP32)
@@ -133,16 +132,9 @@ void SonarSensor::_bgTask(void *pvParameters)
     while (sensor->_bgRunning)
     {
         unsigned long dur = sensor->pingMicroseconds();
-        float d = -1.0f;
-        if (dur != 0)
-        {
-            d = (dur * 0.0343f) / 2.0f;
-        }
-        // atomic write to volatile
-        sensor->_lastDistance = d;
-
-        // sleep for interval
-        vTaskDelay(pdMS_TO_TICKS(sensor->_bgIntervalMs));
+        float d = (dur == 0) ? -1.0f : (dur * 0.0343f) / 2.0f;
+        sensor->_lastDistance = d; // Atomic write to volatile
+        vTaskDelay(pdMS_TO_TICKS(sensor->_bgIntervalMs)); // 20ms = 50Hz
     }
 
     sensor->_bgTaskHandle = NULL;
@@ -153,11 +145,11 @@ void SonarSensor::startBackground(unsigned long intervalMs)
 {
     if (_bgRunning)
         return;
-    _bgIntervalMs = intervalMs;
+    _bgIntervalMs = (intervalMs < 20) ? 20 : intervalMs; // Enforce 20ms minimum
     _bgRunning = true;
     _lastDistance = -1.0f;
-    // create task pinned to core 1 to avoid interfering with WiFi (core 0)
-    xTaskCreatePinnedToCore(SonarSensor::_bgTask, "sonar_bg", 2048, this, 1, &_bgTaskHandle, 1);
+    // create task pinned to core 0
+    xTaskCreatePinnedToCore(_bgTask, "sonar_bg", 2048, this, 3, &_bgTaskHandle, 0); // Priority 3, Core 0
 }
 
 void SonarSensor::stopBackground()
