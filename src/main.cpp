@@ -23,6 +23,8 @@
 #include <WebSocketsClient.h>
 #include "SonarSensor.h"
 
+#define NO_STOP_BUTTONS  false // Set to true to disable stop button reading (for testing without hardware)
+
 // Constants
 // Sonar Sensor Configuration
 const uint8_t TRIG_PIN = 21;
@@ -127,6 +129,10 @@ WebSocketsClient    webSocket;
 bool                socketDataActivity = false;                 // WebSocket activity indicator
 JsonArray           coils;                                      // JSON array for coils
 bool                coilValues[14];                             // Coil states from WebSocket
+
+unsigned long lastLoopTime = 0;                         // Last loop time duration
+unsigned long loopTimeDisplayMs = 0;                     // Last loop time display
+
 
 
 // Helper Functions
@@ -327,7 +333,12 @@ static void initEthernet() {
  */
 static void readStopButtonStates(int startingIndex) {
   for (int i = 0; i < NUM_BUTTONS - 1; i++) {
-    stopButtonStates[i] = !digitalRead(stopButtonPins[i + startingIndex]);
+    if (NO_STOP_BUTTONS) {
+      stopButtonStates[i] = true;
+    }else{
+      stopButtonStates[i] = !digitalRead(stopButtonPins[i + startingIndex]);
+    }
+
   }
 }
 
@@ -362,10 +373,12 @@ static unsigned long updateHeartbeatLED(unsigned long currentMillis, unsigned lo
     static bool heartbeatled_show = false;
     if (currentMillis - lastHeartBeat >= interval) {
       heartbeatled_show = !heartbeatled_show;
-        if (loopWarning > 0){
-          USE_SERIAL.println(loopWarning);
-          loopWarning = loopWarning - 1;
-        }
+      if (loopWarning > 0){
+        USE_SERIAL.println(loopWarning);
+        loopWarning = loopWarning - 1;
+      }else{
+        loopTimeDisplayMs = lastLoopTime;
+      }
       if (heartbeatled_show) {
             switch (heartbeatState) {
                 case 0:
@@ -601,11 +614,12 @@ void loop() {
   }
 
   // Loop time warning
-  unsigned long loopTime = millis() - startTime;
-  if (loopTime > loopTimeThresholdMs) {
-    Serial.printf("WARNING: Loop time exceeded threshold! Loop time: %lu ms, Threshold: %lu ms\n", loopTime, loopTimeThresholdMs);
+  lastLoopTime = millis() - startTime;
+  if (lastLoopTime > loopTimeThresholdMs) {
+    Serial.printf("WARNING: Loop time exceeded threshold! Loop time: %lu ms, Threshold: %lu ms\n", lastLoopTime, loopTimeThresholdMs);
     setLEDColor(HEARTBEAT_LED, 1, true, RED_COLOR); // Orange for warning
     loopWarning = 20; // Show warning for 2 blinks
+    loopTimeDisplayMs = lastLoopTime;
   }
 
   FastLED.show(g_Brightness); //  Show and delay

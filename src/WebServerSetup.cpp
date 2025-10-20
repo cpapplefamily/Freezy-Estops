@@ -16,6 +16,7 @@ extern float sonarDistance;     // Declare external sonar distance from Main.cpp
 extern unsigned long alertTrigCm; // Declare external alert threshold from Main.cpp
 extern unsigned long alertHoldMs; // Declare external alert hold time from Main.cpp
 extern unsigned long minOffMs;   // Declare external min off time from Main.cpp
+extern unsigned long loopTimeDisplayMs;   // Declare external loop time from Main.cpp
 
 void setupWebServer()
 {
@@ -68,6 +69,7 @@ void setupWebServer()
                     "        ledsonarFlipFlop.style.backgroundColor = data['sonarAlert'] ? 'green' : 'gray';"
                     "      }"
                     "      document.getElementById('sonarDistance').textContent = data['sonarDistance'].toFixed(2);"
+                    "      document.getElementById('loopTimeDisplayMs').textContent = data['loopTimeDisplayMs'];"
                     "    });"
                     "}"
                     "setInterval(updateLEDs, 500);" // Update every 500ms
@@ -103,6 +105,7 @@ void setupWebServer()
         }
 
         html += "<button onclick=\"location.href='/setup'\">Go to Settings</button>"
+                "<p>Last Loop Time: <span id='loopTimeDisplayMs'>-1</span> ms</p>"
                 "</body></html>";
         request->send(200, "text/html", html); });
 
@@ -122,6 +125,7 @@ void setupWebServer()
         }
         json += ",\"startButton\":" + String(startButtonState);
         json += ",\"sonarDistance\":" + String(sonarDistance, 2); // Format to 2 decimal places
+        json += ",\"loopTimeDisplayMs\":" + String(loopTimeDisplayMs); 
         json += ",\"sonarAlert\":" + String(sonarFlipFlop);
         json += "}";
         request->send(200, "application/json", json);
