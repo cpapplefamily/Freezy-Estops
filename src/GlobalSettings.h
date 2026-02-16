@@ -3,6 +3,11 @@
 
 #include <Arduino.h>
 
+// Declare the allianceColor variable
+// One of:  Red, Blue, Field
+String allianceColor = "Red";
+// String allianceColor = "Blue";
+
 extern int heartbeatState;    // Heartbeat state for system status
 extern bool printSerialDebug; // Flag to enable/disable debug logging
 extern const char *baseUrl;
@@ -37,7 +42,7 @@ const CRGB LTWHITE_COLOR = CRGB(50, 50, 50);
 
 // LED Configuration
 #ifdef ESP32_S3_DEVKITM_1
-const uint8_t NUM_LED_STRIPS = 5;
+const uint8_t NUM_LED_STRIPS = 1;
 const uint8_t NUM_LEDS_PER_STRIP = 5;
 const uint8_t NUM_LEDS_PER_METER = 30;
 #define NUM_LEDS (NUM_LED_STRIPS * NUM_LEDS_PER_STRIP * NUM_LEDS_PER_METER) // 750

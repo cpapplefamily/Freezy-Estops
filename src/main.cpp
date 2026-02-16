@@ -22,6 +22,7 @@
 #include "GlobalSettings.h"          // Include the GlobalSettings header
 #include <WebSocketsClient.h>
 #include "SonarSensor.h"
+#include "Field_hub_lightStatus.h"
 
 #define NO_STOP_BUTTONS  false // Set to true to disable stop button reading (for testing without hardware)
 
@@ -404,36 +405,6 @@ static unsigned long updateHeartbeatLED(unsigned long currentMillis, unsigned lo
   return lastHeartBeat;
 }
 
-/**
- * Handles sonar alerts for RED_ALLIANCE or BLUE_ALLIANCE.
- * @param alliance The alliance identifier ("red" or "blue").
- */
-static void handleSonarAlerts(const String &alliance) {
-  sonarDistance = sonar.getLastDistance();
-  if (sonar.belowThresholdFor(alertTrigCm)) {
-    sonarFlipFlop = !sonarFlipFlop;
-    if (!sonarAlertSent) {
-      if (printSerialDebug) {
-        Serial.println("ALERT: object within threshold for >=1s (one-shot)");
-      }
-      sonarAlertSent = true;
-      switch (LT_MatchState) {
-        case 0: // Pre Match
-        case 7: // TimeoutActive
-        case 8: // PostTimeout
-          break;
-        case 1 ... 6:
-          postElement(alliance, "ProcessorAlgae");
-          break;
-        default:
-          break;
-      }
-    }
-  } else {
-    sonarAlertSent = false;
-  }
-}
-
 // Setup function
 void setup()
 {
@@ -453,34 +424,34 @@ void setup()
   arenaPort = preferences.getString("arenaPort", "8080");
 
   // Initialize LED strip
-  if (deviceRole != "BARGE_LIGHTS") {
-    g_Brightness = 15;
-    g_PowerLimit = 900;
-  }
+  //if (deviceRole != "BARGE_LIGHTS") {
+    g_Brightness = 200;
+    g_PowerLimit = 4000;
+  //}
   FastLED.addLeds<WS2812B, LEDSTRIP, GRB>(g_LEDs, NUM_LEDS);
   FastLED.setBrightness(g_Brightness);
   FastLED.setMaxPowerInMilliWatts(g_PowerLimit); // Set the power limit, above which brightness will be throttled
 
-  // Initialize the start match button
+  /* // Initialize the start match button
   pinMode(START_MATCH_BTN, INPUT_PULLUP);
 
   // Initialize the stop buttons
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(stopButtonPins[i], INPUT);
-  }
+  } */
 
   // Initialize sonar
   /*
   Need to test why sonar is causing issues on FMS_TABLE
   1. If the sonar is initialized, the FMS_TABLE Estops and Start Match button do not work
   */
-  if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
+  /* if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
     Serial.println("Initializing Sonar Sensor...");
     sonar.begin();
     sonar.setMinOffTime(minOffMs);
     // start background sampling (non-blocking for the main loop)
     sonar.startBackground(20); 
-  }
+  } */
 
 
   // Initialize network
@@ -488,10 +459,13 @@ void setup()
   initEthernet();
 #endif // ESP32
 
-  // Set up the web server
+// Set up the web server
   setupWebServer();
 
-  // Connect to the WebSocket server
+ /*  // Set up the web server
+  setupWebServer(); */
+
+  /* // Connect to the WebSocket server
   USE_SERIAL.println("Connecting to WebSocket server...");
   String originHeader = "Origin: http://" + arenaIP + ":" + arenaPort;
   webSocket.setExtraHeaders(originHeader.c_str());
@@ -503,7 +477,7 @@ void setup()
   webSocket.onEvent(webSocketEvent);
 
   // try ever 5000 again if connection has failed
-  webSocket.setReconnectInterval(5000);
+  webSocket.setReconnectInterval(5000); */
 }
 
 
@@ -515,13 +489,13 @@ void loop() {
   static unsigned long lastPrint = 0;
   static unsigned long lastHeartbeat = 0;
   unsigned long currentMillis = millis();
-  deviceRole = preferences.getString("deviceRole", "RED_ALLIANCE");
+  /* deviceRole = preferences.getString("deviceRole", "RED_ALLIANCE"); */
   // FastLED.clear(); // Clear the LED strip
   looptime = 100;
 
-  webSocket.loop(); // Handle WebSocket events
+ /*  webSocket.loop(); // Handle WebSocket events */
 
-  if (deviceRole == "RED_ALLIANCE") {
+  /* if (deviceRole == "RED_ALLIANCE") {
     setLEDColor(DEVICE_ROLE_LED, 1, true, RED_COLOR); // RED
     readStopButtonStates(1);
     postAllStopStatus(stopButtonStates,1);
@@ -598,8 +572,10 @@ void loop() {
             // Do Nothing
             break;
     }
-  }
+  } */
 
+  updateHub_lightStatus();
+  //setLEDColor(1,NUM_LEDS - 10,true,BLUE_COLOR);
   // print the IP address every 5 seconds
   if (LT_MatchState == 0 ) {
     lastPrint = printNetworkInfo(currentMillis, lastPrint, 30000);
