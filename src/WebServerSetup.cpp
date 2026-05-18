@@ -11,11 +11,6 @@ extern String deviceGWIP;
 extern String arenaPort;
 extern bool stopButtonStates[6]; // Declare external array from Main.cpp
 extern bool startButtonState;   // Declare external start button state from Main.cpp
-extern bool sonarFlipFlop;   // Declare external sonarFlipFlop state from Main.cpp
-extern float sonarDistance;     // Declare external sonar distance from Main.cpp
-extern unsigned long alertTrigCm; // Declare external alert threshold from Main.cpp
-extern unsigned long alertHoldMs; // Declare external alert hold time from Main.cpp
-extern unsigned long minOffMs;   // Declare external min off time from Main.cpp
 
 void setupWebServer()
 {
@@ -27,9 +22,6 @@ void setupWebServer()
     deviceIP = preferences.getString("deviceIP", "");
     deviceGWIP = preferences.getString("deviceGateway", "");
     useDHCP = preferences.getBool("useDHCP", true);
-    alertTrigCm = preferences.getULong("alertTrigCm", 30); // Default: 30 cm
-    alertHoldMs = preferences.getULong("alertHoldMs", 1000); // Default: 1000 ms
-    minOffMs = preferences.getULong("minOffMs", 500); // Default: 500 ms
     //preferences.end(); // Close preferences to ensure data is saved
 
     // Set up the web server routes
@@ -40,39 +32,9 @@ void setupWebServer()
                       "<h1>Welcome to Freezy Estops</h1>"
                       "<p>Current Device Role: " + deviceRole + "</p>";
         
-        // Add sonar distance and LED indicators based on deviceRole
+        // Add LED indicators based on deviceRole
         if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
-            html += "<p>Sonar Distance: <span id='sonarDistance'>0.00</span> cm</p>"
-                    "<div style='text-align: center;'>"
-                    "<div id='ledsonarFlipFlop' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
-                    "</div>"
-                    "<p>sonar Flip Flop indicator flips on each positve trigger</p>"
-                    "<h2>Stop Button States</h2>"
-                    "<div id='buttonStates' style='display: flex; flex-wrap: wrap; gap: 20px;'>";
-            for (int i = 1; i <= 6; i++) {
-                html += "<div style='text-align: center;'>"
-                        "<div id='led" + String(i) + "' style='width: 30px; height: 30px; border-radius: 50%; background-color: gray;'></div>"
-                        "<p>Button " + String(i) + "</p>"
-                        "</div>";
-            }
-            html += "</div>"
-                    "<script>"
-                    "function updateLEDs() {"
-                    "  fetch('/buttonStates')"
-                    "    .then(response => response.json())"
-                    "    .then(data => {"
-                    "      for (let i = 1; i <= 6; i++) {"
-                    "        let led = document.getElementById('led' + i);"
-                    "        let ledsonarFlipFlop = document.getElementById('ledsonarFlipFlop');"
-                    "        led.style.backgroundColor = data['button' + i] ? 'red' : 'gray';"
-                    "        ledsonarFlipFlop.style.backgroundColor = data['sonarAlert'] ? 'green' : 'gray';"
-                    "      }"
-                    "      document.getElementById('sonarDistance').textContent = data['sonarDistance'].toFixed(2);"
-                    "    });"
-                    "}"
-                    "setInterval(updateLEDs, 500);" // Update every 500ms
-                    "updateLEDs();" // Initial update
-                    "</script>";
+
         }
         else if (deviceRole == "FMS_TABLE") {
             html += "<h2>Button States</h2>"
@@ -112,7 +74,7 @@ void setupWebServer()
         request->send(204); // No Content response to suppress favicon error
     });
 
-    // Route to provide button states and sonar distance as JSON
+    // Route to provide button states
     server.on("/buttonStates", HTTP_GET, [](AsyncWebServerRequest *request)
               {
         String json = "{";
@@ -121,8 +83,6 @@ void setupWebServer()
             if (i < 5) json += ",";
         }
         json += ",\"startButton\":" + String(startButtonState);
-        json += ",\"sonarDistance\":" + String(sonarDistance, 2); // Format to 2 decimal places
-        json += ",\"sonarAlert\":" + String(sonarFlipFlop);
         json += "}";
         request->send(200, "application/json", json);
     });
@@ -164,12 +124,6 @@ void setupWebServer()
         if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
            html +=    "<fieldset id=\"alertFields\">"
                       "<legend>Sensor Configuration</legend>"
-                      "<label for=\"alertTrigCm\">Alert Threshold (cm): </label>"
-                      "<input type=\"number\" id=\"alertTrigCm\" name=\"alertTrigCm\" value=\"" + String(alertTrigCm) + "\"><br><br>"
-                      "<label for=\"alertHoldMs\">Alert Hold Time (ms): </label>"
-                      "<input type=\"number\" id=\"alertHoldMs\" name=\"alertHoldMs\" value=\"" + String(alertHoldMs) + "\"><br><br>"
-                      "<label for=\"minOffMs\">Minimum Off Time (ms): </label>"
-                      "<input type=\"number\" id=\"minOffMs\" name=\"minOffMs\" value=\"" + String(minOffMs) + "\"><br><br>"
                       "</fieldset>";
         } else {
             
@@ -212,18 +166,6 @@ void setupWebServer()
         if (request->hasParam("arenaPort", true)) {
             arenaPort = request->getParam("arenaPort", true)->value();
             preferences.putString("arenaPort", arenaPort);
-        }
-        if (request->hasParam("alertTrigCm", true)) {
-            alertTrigCm = request->getParam("alertTrigCm", true)->value().toInt();
-            preferences.putULong("alertTrigCm", alertTrigCm);
-        }
-        if (request->hasParam("alertHoldMs", true)) {
-            alertHoldMs = request->getParam("alertHoldMs", true)->value().toInt();
-            preferences.putULong("alertHoldMs", alertHoldMs);
-        }
-        if (request->hasParam("minOffMs", true)) {
-            minOffMs = request->getParam("minOffMs", true)->value().toInt();
-            preferences.putULong("minOffMs", minOffMs);
         }
         useDHCP = request->hasParam("dhcp", true);
         preferences.putBool("useDHCP", useDHCP);

@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <ETH.h>
 #include <WiFi.h>
-#include "WiFiCredentials.h" // Include the WiFi credentials
+//#include "WiFiCredentials.h" // Include the WiFi credentials
 #include <ArduinoJson.h>
 #define FASTLED_INTERNAL // Suppress build banner
 #include <FastLED.h>
@@ -23,16 +23,9 @@
 #include "WebServerSetup.h"          // Include the WebServerSetup header
 #include "GlobalSettings.h"          // Include the GlobalSettings header
 #include <WebSocketsClient.h>
-#include "SonarSensor.h"
+
 
 // Constants
-// Sonar Sensor Configuration
-const uint8_t TRIG_PIN = 21;
-const uint8_t ECHO_PIN = 17;
-const unsigned long PULSE_TIMEOUT = 30000UL; // 30 ms -> ~5 meters
-unsigned long alertTrigCm = 30UL;   // trigger when object closer than 30 cm
-unsigned long alertHoldMs = 1000UL; // must stay below threshold for 1 second
-unsigned long minOffMs = 1000UL;    // once triggered, require 10 seconds of cleared before allowing retrigger
 unsigned long loopTimeThresholdMs = 200; // 200ms threshold for loop timing warning
 int loopWarning = 0; // Show warning for 2 blinks
 
@@ -119,11 +112,6 @@ String              socketData;
 CRGB                g_LEDs[NUM_LEDS] = {0};                     // LED frame buffer
 int                 g_Brightness = 255;                         // LED brightness (0-255)
 int                 g_PowerLimit = 50000;                       // Power limit in mW
-
-SonarSensor         sonar(TRIG_PIN, ECHO_PIN, PULSE_TIMEOUT);   // Sonar sensor
-bool                sonarAlertSent = false;                     // One-shot flag for sonar alerts
-bool                sonarFlipFlop = false;                    // Memory flip-flop for sonar alert state
-float               sonarDistance;                              // Last sonar distance
 
 WebSocketsClient    webSocket;
 bool                socketDataActivity = false;                 // WebSocket activity indicator
@@ -393,36 +381,6 @@ static unsigned long updateHeartbeatLED(unsigned long currentMillis, unsigned lo
   return lastHeartBeat;
 }
 
-/**
- * Handles sonar alerts for RED_ALLIANCE or BLUE_ALLIANCE.
- * @param alliance The alliance identifier ("red" or "blue").
- */
-static void handleSonarAlerts(const String &alliance) {
-  sonarDistance = sonar.getLastDistance();
-  if (sonar.belowThresholdFor(alertTrigCm)) {
-    sonarFlipFlop = !sonarFlipFlop;
-    if (!sonarAlertSent) {
-      if (printSerialDebug) {
-        Serial.println("ALERT: object within threshold for >=1s (one-shot)");
-      }
-      sonarAlertSent = true;
-      switch (LT_MatchState) {
-        case 0: // Pre Match
-        case 7: // TimeoutActive
-        case 8: // PostTimeout
-          break;
-        case 1 ... 6:
-          postElement(alliance, "ProcessorAlgae");
-          break;
-        default:
-          break;
-      }
-    }
-  } else {
-    sonarAlertSent = false;
-  }
-}
-
 // Setup function
 void setup()
 {
@@ -435,9 +393,6 @@ void setup()
   deviceIP = preferences.getString("deviceIP", "10.0.100.240");
   deviceGWIP = preferences.getString("deviceGWIP", "10.0.100.3");
   useDHCP = preferences.getBool("useDHCP", true);
-  alertTrigCm = preferences.getULong("alertTrigCm", 30);   // Default: 30 cm
-  alertHoldMs = preferences.getULong("alertHoldMs", 1000); // Default: 1000 ms
-  minOffMs = preferences.getULong("minOffMs", 1000);       // Default: 500 ms
   arenaIP = preferences.getString("arenaIP", "10.0.100.5");
   arenaPort = preferences.getString("arenaPort", "8080");
 
@@ -458,17 +413,9 @@ void setup()
     pinMode(stopButtonPins[i], INPUT);
   }
 
-  // Initialize sonar
-  /*
-  Need to test why sonar is causing issues on FMS_TABLE
-  1. If the sonar is initialized, the FMS_TABLE Estops and Start Match button do not work
-  */
+  // Initialize counters
   if (deviceRole == "RED_ALLIANCE" || deviceRole == "BLUE_ALLIANCE") {
-    Serial.println("Initializing Sonar Sensor...");
-    sonar.begin();
-    sonar.setMinOffTime(minOffMs);
-    // start background sampling (non-blocking for the main loop)
-    sonar.startBackground(200); 
+    
   }
 
 
@@ -514,13 +461,11 @@ void loop() {
     setLEDColor(DEVICE_ROLE_LED, 1, true, RED_COLOR); // RED
     readStopButtonStates(1);
     postAllStopStatus(stopButtonStates,1);
-    handleSonarAlerts("red");
   }
   else if (deviceRole == "BLUE_ALLIANCE") {
     setLEDColor(DEVICE_ROLE_LED, 1, true, BLUE_COLOR);
     readStopButtonStates(1);
     postAllStopStatus(stopButtonStates,7);
-    handleSonarAlerts("blue");
   } else if (deviceRole == "FMS_TABLE") {
     setLEDColor(DEVICE_ROLE_LED, 1, true, VIOLET_COLOR);
     // Check if the start match button is pressed
