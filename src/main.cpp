@@ -70,19 +70,6 @@ const int stopButtonPins[NUM_BUTTONS] = {33,  // Field stop
 
 #define START_MATCH_BTN                 34
 #define LEDSTRIP                        47 // Pin connected to NeoPixel
-#define SECTION_LENGTH                  124
-#define BARGE_RED1_LED_START            3
-#define BARGE_RED1_LED_LENGTH           SECTION_LENGTH
-#define BARGE_RED2_LED_START            SECTION_LENGTH
-#define BARGE_RED2_LED_LENGTH           SECTION_LENGTH
-#define BARGE_RED3_LED_START            SECTION_LENGTH * 2
-#define BARGE_RED3_LED_LENGTH           SECTION_LENGTH
-#define BARGE_BLUE3_LED_START           SECTION_LENGTH * 3
-#define BARGE_BLUE3_LED_LENGTH          SECTION_LENGTH
-#define BARGE_BLUE2_LED_START           SECTION_LENGTH * 4
-#define BARGE_BLUE2_LED_LENGTH          SECTION_LENGTH
-#define BARGE_BLUE1_LED_START           SECTION_LENGTH * 5
-#define BARGE_BLUE1_LED_LENGTH          SECTION_LENGTH
 #define HEARTBEAT_LED                   0
 #define DEVICE_ROLE_LED                 1
 #define SOCKET_ACTIVITY_LED             2
@@ -493,31 +480,31 @@ void loop() {
         case 0: // Pre Match
             // MatchStatePre();
             if (coilValues[7]) {
-                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , true, GREEN_COLOR);
+                //setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , true, GREEN_COLOR);
             } else{
-                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , false, GREEN_COLOR);
+                //setLEDColor(BARGE_RED1_LED_START, NUM_LEDS , false, GREEN_COLOR);
             }
             break;
         case 1 ... 5: // start Matct
             // MatchStateAuto();
-            setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-            setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-            setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-            setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-            setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-            setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+            //setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+            //setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+            //setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+            //setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+            //setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+            //setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
             break;
         case 6: // Post Match
             // MatchStatePost();
             if (coilValues[7]) {
-                setLEDColor(BARGE_RED1_LED_START, NUM_LEDS, true, GREEN_COLOR);
+                //setLEDColor(BARGE_RED1_LED_START, NUM_LEDS, true, GREEN_COLOR);
             } else {
-                setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
-                setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
-                setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
-                setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
-                setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
-                setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
+                //setLEDColor(BARGE_RED1_LED_START, BARGE_RED1_LED_LENGTH, coilValues[8], RED_COLOR);
+                //setLEDColor(BARGE_RED2_LED_START, BARGE_RED2_LED_LENGTH, coilValues[9], RED_COLOR);
+                //setLEDColor(BARGE_RED3_LED_START, BARGE_RED3_LED_LENGTH, coilValues[10], RED_COLOR);
+                //setLEDColor(BARGE_BLUE1_LED_START, BARGE_BLUE1_LED_LENGTH, coilValues[11], BLUE_COLOR);
+                //setLEDColor(BARGE_BLUE2_LED_START, BARGE_BLUE2_LED_LENGTH, coilValues[12], BLUE_COLOR);
+                //setLEDColor(BARGE_BLUE3_LED_START, BARGE_BLUE3_LED_LENGTH, coilValues[13], BLUE_COLOR);
             }
             break;
         case 7: // TimeoutActive
